@@ -1,7 +1,7 @@
 .api-client {
   display: flex;
   flex-direction: row;
-  gap: 12px;
+  gap: 0;
   padding: 12px;
   height: 100vh;
 
@@ -112,10 +112,18 @@
 
   .divider {
     flex: none;
-    width: 7px;
-    border-radius: 4px;
+    position: relative;
+    width: 1px;
     background-color: var(--sn-stylekit-border-color);
     cursor: col-resize;
+
+    /* The visual line stays 1px; a wider invisible strip keeps the
+     * drag target comfortable without wasting layout space. */
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0 -4px;
+    }
 
     &:hover {
       background-color: var(--sn-stylekit-info-color);
