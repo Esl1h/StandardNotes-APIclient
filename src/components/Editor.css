@@ -1,6 +1,6 @@
 .api-client {
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: row;
   gap: 12px;
   padding: 12px;
   height: 100vh;
@@ -11,6 +11,65 @@
     border: 1px solid var(--sn-stylekit-border-color);
     border-radius: 8px;
     padding: 8px;
+
+    .variables-panel {
+      margin-bottom: 12px;
+
+      .environment-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+
+        .chip {
+          border: 1px solid var(--sn-stylekit-border-color);
+          background-color: var(--sn-stylekit-contrast-background-color);
+          color: var(--sn-stylekit-neutral-color);
+          border-radius: 999px;
+          padding: 2px 12px;
+          cursor: pointer;
+
+          &.active {
+            background-color: var(--sn-stylekit-info-color);
+            border-color: var(--sn-stylekit-info-color);
+            color: var(--sn-stylekit-info-contrast-color);
+          }
+        }
+      }
+
+      ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .variable-row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        padding: 3px 0;
+
+        .variable-name {
+          font-family: monospace;
+          color: var(--sn-stylekit-info-color);
+        }
+
+        .variable-value {
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: var(--sn-stylekit-neutral-contrast-color);
+        }
+
+        .copy {
+          background: none;
+          border: none;
+          color: var(--sn-stylekit-neutral-color);
+          cursor: pointer;
+        }
+      }
+    }
 
     .empty {
       color: var(--sn-stylekit-neutral-color);
@@ -85,65 +144,6 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-      }
-    }
-
-    .variables-panel {
-      margin-bottom: 12px;
-
-      .environment-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-bottom: 8px;
-
-        .chip {
-          border: 1px solid var(--sn-stylekit-border-color);
-          background-color: var(--sn-stylekit-contrast-background-color);
-          color: var(--sn-stylekit-neutral-color);
-          border-radius: 999px;
-          padding: 2px 12px;
-          cursor: pointer;
-
-          &.active {
-            background-color: var(--sn-stylekit-info-color);
-            border-color: var(--sn-stylekit-info-color);
-            color: var(--sn-stylekit-info-contrast-color);
-          }
-        }
-      }
-
-      ul {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-
-      .variable-row {
-        display: flex;
-        align-items: baseline;
-        gap: 8px;
-        padding: 3px 0;
-
-        .variable-name {
-          font-family: monospace;
-          color: var(--sn-stylekit-info-color);
-        }
-
-        .variable-value {
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          color: var(--sn-stylekit-neutral-contrast-color);
-        }
-
-        .copy {
-          background: none;
-          border: none;
-          color: var(--sn-stylekit-neutral-color);
-          cursor: pointer;
-        }
       }
     }
 
