@@ -3,10 +3,10 @@
   "name": "API Client",
   "content_type": "SN|Component",
   "area": "editor-editor",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "HTTP API client editor for Standard Notes, using .http syntax",
   "url": "https://esli.cafe/StandardNotes-APIclient/index.html",
-  "download_url": "https://github.com/Esl1h/StandardNotes-APIclient/releases/download/v0.2.3/extension.zip",
+  "download_url": "https://github.com/Esl1h/StandardNotes-APIclient/releases/download/v0.2.4/extension.zip",
   "latest_url": "https://esli.cafe/StandardNotes-APIclient/ext.json",
   "marketing_url": "https://github.com/Esl1h/StandardNotes-APIclient",
   "thumbnail_url": "https://esli.cafe/StandardNotes-APIclient/logo512.png"
