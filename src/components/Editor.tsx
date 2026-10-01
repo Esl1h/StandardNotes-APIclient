@@ -2,6 +2,7 @@ import React from 'react';
 import EditorKit from '@standardnotes/editor-kit';
 import { type EditorKitDelegate } from '@standardnotes/editor-kit';
 import { SAMPLE_HTTP_TEXT } from '../lib/sampleHttp';
+import { setActiveEnvironment } from '../lib/parser';
 import { HttpFile } from '../lib/parser';
 import { parseHttpFile } from '../lib/parser';
 import './Editor.css';
@@ -67,6 +68,10 @@ export default class Editor extends React.Component<
     this.handleTextChange(SAMPLE_HTTP_TEXT);
   };
 
+  handleSetEnvironment = (environment: string | null) => {
+    this.handleTextChange(setActiveEnvironment(this.state.rawText, environment));
+  };
+
   render() {
     return (
       <EditorInternal
@@ -74,6 +79,8 @@ export default class Editor extends React.Component<
         httpFile={this.state.httpFile}
         onTextChange={this.handleTextChange}
         onInsertSample={this.handleInsertSample}
+        onSetEnvironment={this.handleSetEnvironment}
+        activeEnvironment={this.state.httpFile.environment}
       />
     );
   }

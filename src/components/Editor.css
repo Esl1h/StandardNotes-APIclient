@@ -36,15 +36,19 @@
     }
   }
 
-  .raw-editor {
+  .raw-editor-container {
     flex: 1;
-    resize: none;
+    overflow: hidden;
     border: 1px solid var(--sn-stylekit-border-color);
     border-radius: 8px;
     background-color: var(--sn-stylekit-contrast-background-color);
     color: var(--sn-stylekit-contrast-foreground-color);
     font-family: monospace;
     font-size: var(--sn-stylekit-font-size-editor);
+
+    .cm-editor {
+      height: 100%;
+    }
   }
 
   .block {
@@ -52,6 +56,11 @@
     border-radius: 6px;
     padding: 8px;
     margin-bottom: 8px;
+
+    &.active {
+      border-color: var(--sn-stylekit-info-color);
+      box-shadow: 0 0 0 1px var(--sn-stylekit-info-color-translucent);
+    }
 
     .block-summary {
       display: flex;
@@ -76,6 +85,65 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+    }
+
+    .variables-panel {
+      margin-bottom: 12px;
+
+      .environment-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+
+        .chip {
+          border: 1px solid var(--sn-stylekit-border-color);
+          background-color: var(--sn-stylekit-contrast-background-color);
+          color: var(--sn-stylekit-neutral-color);
+          border-radius: 999px;
+          padding: 2px 12px;
+          cursor: pointer;
+
+          &.active {
+            background-color: var(--sn-stylekit-info-color);
+            border-color: var(--sn-stylekit-info-color);
+            color: var(--sn-stylekit-info-contrast-color);
+          }
+        }
+      }
+
+      ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .variable-row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        padding: 3px 0;
+
+        .variable-name {
+          font-family: monospace;
+          color: var(--sn-stylekit-info-color);
+        }
+
+        .variable-value {
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: var(--sn-stylekit-neutral-contrast-color);
+        }
+
+        .copy {
+          background: none;
+          border: none;
+          color: var(--sn-stylekit-neutral-color);
+          cursor: pointer;
+        }
       }
     }
 

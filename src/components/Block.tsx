@@ -5,6 +5,10 @@ import { type HTTPError, type HTTPResponse } from '../lib/types';
 
 interface BlockProperties {
   request: HttpRequest;
+  /** True while the caret inside the source sits on this request */
+  active: boolean;
+  /** Click scroll-to-source callback (moves the editor caret here) */
+  onSelect: () => void;
 }
 
 interface BlockDriverState {
@@ -15,7 +19,8 @@ interface BlockDriverState {
 
 /**
  * One .http request block: summary line, Run button and inline response
- * (volatile; never written back to the note text).
+ * (volatile; never written back to the note text); clicking the block
+ * scrolls the source editor to the request line.
  */
 class Block extends React.Component<BlockProperties, BlockDriverState> {
   abortController?: AbortController;
@@ -58,22 +63,36 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
   };
 
   render() {
-    const { request } = this.props;
+    const { request, active, onSelect } = this.props;
     const { running, response, error } = this.state;
 
     return (
-      <div className="block">
+      <div
+        className={active ? 'block active' : 'block'}
+        onClick={onSelect}
+        role="presentation"
+      >
         <div className="block-summary">
           {running ? (
             <button
               className="cancel"
-              onClick={this.cancel}
+              onClick={(event) => {
+                event.stopPropagation();
+                this.cancel();
+              }}
               title="Cancel request"
             >
               Cancel
             </button>
           ) : (
-            <button className="run" onClick={this.run} title="Run request">
+            <button
+              className="run"
+              onClick={(event) => {
+                event.stopPropagation();
+                this.run();
+              }}
+              title="Run request"
+            >
               Run
             </button>
           )}
@@ -95,7 +114,10 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               <span>{response.sizeBytes} B</span>
               <button
                 className="close"
-                onClick={this.closeResponse}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  this.closeResponse();
+                }}
                 title="Close response"
               >
                 ×

@@ -18,6 +18,8 @@ interface EditorInternalInterface {
   httpFile: HttpFile;
   onTextChange: (rawText: string) => void;
   onInsertSample: () => void;
+  onSetEnvironment: (environment: string | null) => void;
+  activeEnvironment: string | null;
 }
 
 export type { HTTPResponse, HTTPError, EditorInternalInterface };

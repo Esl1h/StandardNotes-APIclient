@@ -5,7 +5,7 @@ import './stylesheets/main.scss';
 import './components/Editor.css';
 import './demo.css';
 import EditorInternal from './components/EditorInternal';
-import { parseHttpFile } from './lib/parser';
+import { parseHttpFile, setActiveEnvironment } from './lib/parser';
 import { SAMPLE_HTTP_TEXT } from './lib/sampleHttp';
 
 const STORAGE_KEY = 'standardnotes-apiclient-demo-text';
@@ -55,6 +55,10 @@ function DemoEditor() {
           httpFile={httpFile}
           onTextChange={onTextChange}
           onInsertSample={reset}
+          onSetEnvironment={(environment) =>
+            onTextChange(setActiveEnvironment(rawText, environment))
+          }
+          activeEnvironment={httpFile.environment}
         />
       </main>
       <footer className="demo-footer">
