@@ -89,6 +89,12 @@ GET https://jsonplaceholder.typicode.com/posts/1
 
 - `### Title` starts a new request block
 - `@name = value` defines a variable; `{{name}}` interpolates it
+- Environments are defined in the file itself: `@name.staging = value`
+  adds a value for the `staging` environment and `@env = staging` declares
+  the active one. The editor shows environment chips above the variable
+  list; requests resolve values from the active environment first and
+  fall back to the unsuffixed ones. `{{name.prod}}` references an
+  environment value explicitly.
 - `METHOD url` is the request line (a bare `https://...` line defaults to
   `GET`)
 - `Name: value` lines between the request line and the first blank line are
