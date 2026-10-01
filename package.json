@@ -1,6 +1,6 @@
 {
   "name": "standardnotes-apiclient",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "HTTP API client editor for Standard Notes, using .http syntax",
   "private": true,
   "license": "AGPL-3.0-or-later",
