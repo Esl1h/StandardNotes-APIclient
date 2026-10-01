@@ -1,0 +1,13 @@
+{
+  "identifier": "org.esl1h.sn-api-client-dev",
+  "name": "API Client (Dev)",
+  "content_type": "SN|Component",
+  "area": "editor-editor",
+  "version": "0.1.0",
+  "description": "DEV HTTP API client editor for Standard Notes",
+  "url": "http://localhost:3000/index.html",
+  "download_url": "",
+  "latest_url": "http://localhost:3000/ext.dev.json",
+  "marketing_url": "https://github.com/Esl1h/StandardNotes-APIclient",
+  "thumbnail_url": "http://localhost:3000/logo512.png"
+}
