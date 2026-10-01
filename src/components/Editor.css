@@ -11,6 +11,8 @@
     border: 1px solid var(--sn-stylekit-border-color);
     border-radius: 8px;
     padding: 8px;
+    /* Collapse the two adjacent panel borders into one page-wide line. */
+    margin-left: -1px;
 
     .variables-panel {
       margin-bottom: 12px;
@@ -113,20 +115,16 @@
   .divider {
     flex: none;
     position: relative;
-    width: 1px;
-    background-color: var(--sn-stylekit-border-color);
+    width: 0;
+    /* No visible bar at all: the panels own borders form the seam. */
+    background: transparent;
     cursor: col-resize;
 
-    /* The visual line stays 1px; a wider invisible strip keeps the
-     * drag target comfortable without wasting layout space. */
+    /* Invisible but comfortable grab area around the seam. */
     &::before {
       content: '';
       position: absolute;
-      inset: 0 -4px;
-    }
-
-    &:hover {
-      background-color: var(--sn-stylekit-info-color);
+      inset: 0 -5px;
     }
   }
 
