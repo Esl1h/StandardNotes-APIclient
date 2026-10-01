@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest an improvement or a new capability for the client
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should the editor do instead?
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Links, mockups, or how other tools (Postman, Insomnia, kulala.nvim) handle it

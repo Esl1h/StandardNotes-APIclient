@@ -1,0 +1,10 @@
+# First steps for asking something
+
+Before opening an issue:
+
+1. For questions about using or installing the editor, read the
+   [README](../README.md), including the Privacy section.
+2. For bugs, use the Bug report template and include the note's `.http`
+   contents (without secrets).
+3. For ideas, check the roadmap section of the README first so we know if
+   something is already planned.
