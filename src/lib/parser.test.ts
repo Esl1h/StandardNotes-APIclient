@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { parseHttpFile } from './parser';
+import {
+  parseHttpFile,
+  setActiveEnvironment,
+  variableLookup,
+} from './parser';
 
 describe('parseHttpFile', () => {
   it('parses a simple GET request', () => {
@@ -153,5 +157,128 @@ describe('parseHttpFile', () => {
     expect(file.requests).toHaveLength(2);
     expect(file.requests[0].lineIndex).toBe(3);
     expect(file.requests[1].lineIndex).toBe(6);
+  });
+
+  it('parses environment variables with dot suffixes', () => {
+    const text = [
+      '@host = https://api.example.com',
+      '@host.staging = https://staging.example.com',
+      '@host.prod = https://prod.example.com',
+      'GET https://example.com/ping',
+    ].join('\n');
+
+    const file = parseHttpFile(text);
+
+    expect(file.environments).toEqual(['staging', 'prod']);
+    expect(file.variables[0]).toMatchObject({ name: 'host', value: 'https://api.example.com' });
+    expect(file.variables[1]).toMatchObject({
+      name: 'host',
+      env: 'staging',
+      value: 'https://staging.example.com',
+    });
+  });
+
+  it('reads the active environment from the @env declaration', () => {
+    const file = parseHttpFile('@env = staging\n@host.staging = https://x\nGET https://example.com');
+
+    expect(file.environment).toBe('staging');
+  });
+
+  it('prefers active environment values and falls back to defaults', () => {
+    const text = [
+      '@env = staging',
+      '@host = https://default.example.com',
+      '@host.staging = https://staging.example.com',
+      '',
+      '### Uses staging',
+      'GET {{host}}/ping',
+    ].join('\n');
+
+    const file = parseHttpFile(text);
+
+    expect(file.requests[0].url).toBe('https://staging.example.com/ping');
+  });
+
+  it('falls back to defaults when the environment does not define the variable', () => {
+    const text = [
+      '@env = prod',
+      '@host = https://default.example.com',
+      '@token.prod = prod-token',
+      '@token.staging = staging-token',
+      '',
+      '### Mixed',
+      'GET {{host}}/x',
+    ].join('\n');
+
+    const file = parseHttpFile(text);
+
+    expect(file.requests[0].url).toBe('https://default.example.com/x');
+  });
+
+  it('keeps unknown variables and missing environment refs untouched', () => {
+    const file = parseHttpFile('@env = prod\nGET https://example.com/?x={{missing}}');
+
+    expect(file.requests[0].url).toBe('https://example.com/?x={{missing}}');
+  });
+
+  it('interpolates qualified environment references explicitly', () => {
+    const text = [
+      '@env = staging',
+      '@token.staging = stg-token',
+      '@token.prod = prod-token',
+      '',
+      '### Explicit',
+      'GET https://example.com',
+      'Authorization: Bearer {{token.prod}}',
+    ].join('\n');
+
+    const file = parseHttpFile(text);
+
+    expect(file.requests[0].headers.Authorization).toBe('Bearer prod-token');
+  });
+
+  it('interpolates variables chained inside environment values', () => {
+    const text = [
+      '@base = https://example.com',
+      '@host.prod = {{base}}/prodx',
+      '',
+      'GET {{host.prod}}/ping',
+    ].join('\n');
+
+    const file = parseHttpFile(text);
+
+    expect(file.requests[0].url).toBe('https://example.com/prodx/ping');
+  });
+
+  it('updates the @env line with setActiveEnvironment', () => {
+    expect(setActiveEnvironment('A\n@env = staging\nB', 'prod')).toBe('A\n@env = prod\nB');
+    expect(setActiveEnvironment('@env = staging\nB', null)).toBe('B');
+    expect(setActiveEnvironment('A only', 'dev')).toBe('@env = dev\nA only');
+  });
+
+  it('variableLookup checks environment scope before base', () => {
+    const lookup = variableLookup(
+      [
+        { name: 'host', value: 'default', lineIndex: 0 },
+        { name: 'host', env: 'staging', value: 'staging', lineIndex: 1 },
+      ],
+      'staging'
+    );
+
+    expect(lookup('host')).toBe('staging');
+    expect(lookup('host.staging')).toBe('staging');
+    expect(lookup('host.missing')).toBeUndefined();
+  });
+
+  it('variableLookup falls back to base when active env lacks the key', () => {
+    const lookup = variableLookup(
+      [
+        { name: 'host', value: 'default', lineIndex: 0 },
+        { name: 'token', env: 'staging', value: 'stg', lineIndex: 1 },
+      ],
+      'staging'
+    );
+
+    expect(lookup('host')).toBe('default');
   });
 });
