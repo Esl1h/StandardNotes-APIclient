@@ -1,20 +1,9 @@
 {
   "name": "standardnotes-apiclient",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "HTTP API client editor for Standard Notes, using .http syntax",
-  "keywords": [
-    "Standard Notes",
-    "Standard Notes Extensions"
-  ],
   "private": true,
   "license": "AGPL-3.0-or-later",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Esl1h/StandardNotes-APIclient.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Esl1h/StandardNotes-APIclient/issues"
-  },
   "sn": {
     "main": "index.html"
   }
