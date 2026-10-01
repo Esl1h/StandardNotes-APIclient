@@ -45,18 +45,19 @@ jobs:
 
       - name: Assemble extension package
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          mkdir -p dist-pkg
-          cp -r build/* dist-pkg/
-
           # The desktop app auto-updates by comparing the version in
-          # latest_url (ext.json) against the installed one; rewrite it
-          # with the tag version so a tag bump alone updates clients.
+          # latest_url (ext.json) against the installed one; rewrite both
+          # version and download_url with the tag so a tag bump alone
+          # updates clients. Patching build/ keeps the zip and the Pages
+          # deploy consistent.
+          VERSION=${GITHUB_REF_NAME#v}
+          TAG=${GITHUB_REF_NAME}
           node -e "
             const fs = require('fs');
-            const extPath = 'dist-pkg/ext.json';
+            const extPath = 'build/ext.json';
             const ext = JSON.parse(fs.readFileSync(extPath, 'utf8'));
             ext.version = '$VERSION';
+            ext.download_url = 'https://github.com/' + process.env.GITHUB_REPOSITORY + '/releases/download/$TAG/extension.zip';
             fs.writeFileSync(extPath, JSON.stringify(ext, null, 2) + '\n');
             const pkg = {
               name: 'standardnotes-apiclient',
@@ -66,8 +67,11 @@ jobs:
               license: 'AGPL-3.0-or-later',
               sn: { main: 'index.html' },
             };
-            fs.writeFileSync('dist-pkg/package.json', JSON.stringify(pkg, null, 2) + '\n');
+            fs.writeFileSync('build/package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
+
+          mkdir -p dist-pkg
+          cp -r build/* dist-pkg/
           cd dist-pkg && zip -qr ../extension.zip . && cd ..
 
       - name: Create release and upload asset
