@@ -26,13 +26,13 @@ describe('demoTemplates', () => {
   });
 
   it('the crud template covers every write method', () => {
-    const crud = DEMO_TEMPLATES.find((template) => template.name === 'CRUD básico');
+    const crud = DEMO_TEMPLATES.find((template) => template.name === 'CRUD basics');
     const methods = parseHttpFile(crud!.text).requests.map((request) => request.method);
     expect(methods).toEqual(expect.arrayContaining(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']));
   });
 
   it('real world template interpolates variables into its urls', () => {
-    const realWorld = DEMO_TEMPLATES.find((template) => template.name === 'APIs do mundo real');
+    const realWorld = DEMO_TEMPLATES.find((template) => template.name === 'Real world APIs');
     const file = parseHttpFile(realWorld!.text);
     const forecast = file.requests.find((request) => request.url.includes('open-meteo'));
     expect(forecast?.url).toContain('latitude=-23.55');

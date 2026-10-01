@@ -5,7 +5,7 @@ interface DemoTemplate {
   text: string;
 }
 
-const DEFAULT_TEMPLATE_NAME = 'Tour completo';
+const DEFAULT_TEMPLATE_NAME = 'Full tour';
 
 const DEMO_TEMPLATES: DemoTemplate[] = [
   {
@@ -47,7 +47,7 @@ const DEMO_TEMPLATES: DemoTemplate[] = [
     ].join('\n'),
   },
   {
-    name: 'CRUD básico',
+    name: 'CRUD basics',
     text: [
       '# CRUD basics against jsonplaceholder (public fake API).',
       '# Note the ids in the responses: the server fakes writes.',
@@ -83,7 +83,7 @@ const DEMO_TEMPLATES: DemoTemplate[] = [
     ].join('\n'),
   },
   {
-    name: 'Auth e headers',
+    name: 'Auth and headers',
     text: [
       '# Auth patterns: httpbin echoes back exactly what you sent.',
       '',
@@ -108,7 +108,7 @@ const DEMO_TEMPLATES: DemoTemplate[] = [
     ].join('\n'),
   },
   {
-    name: 'APIs do mundo real',
+    name: 'Real world APIs',
     text: [
       '# Keyless public APIs you can run from this page.',
       '',
