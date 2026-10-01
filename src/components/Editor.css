@@ -96,7 +96,7 @@
   }
 
   .raw-editor-container {
-    flex: 1;
+    flex: none;
     overflow: hidden;
     border: 1px solid var(--sn-stylekit-border-color);
     border-radius: 8px;
@@ -108,6 +108,23 @@
     .cm-editor {
       height: 100%;
     }
+  }
+
+  .divider {
+    flex: none;
+    width: 7px;
+    border-radius: 4px;
+    background-color: var(--sn-stylekit-border-color);
+    cursor: col-resize;
+
+    &:hover {
+      background-color: var(--sn-stylekit-info-color);
+    }
+  }
+
+  &.dragging {
+    cursor: col-resize;
+    user-select: none;
   }
 
   .block {

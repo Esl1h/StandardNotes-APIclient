@@ -7,13 +7,17 @@ import Block from './Block';
 import VariablesPanel from './VariablesPanel';
 import { type EditorInternalInterface } from '../lib/types';
 import { httpEditorTheme, httpHighlightExtensions } from '../lib/httpHighlight';
+import { DEFAULT_SPLIT_PCT, clampSplitPct, readSplitPct, writeSplitPct } from '../lib/layout';
 
 function EditorInternal(props: EditorInternalInterface) {
   const { rawText, httpFile, onTextChange, onInsertSample, onSetEnvironment, activeEnvironment } =
     props;
   const viewRef = useRef<EditorView | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [splitPct, setSplitPct] = useState<number>(() => readSplitPct());
+  const [dragging, setDragging] = useState(false);
 
   // Wire the CodeMirror view once; doc contents flow through props below.
   // The activeIndex derives from the caret position so the block list can
@@ -73,8 +77,41 @@ function EditorInternal(props: EditorInternalInterface) {
   }, [rawText]);
 
   return (
-    <div className="api-client">
-      <div className="raw-editor-container" ref={containerRef} />
+    <div className={dragging ? 'api-client dragging' : 'api-client'} ref={wrapperRef}>
+      <div
+        className="raw-editor-container"
+        style={{ width: `${splitPct}%` }}
+        ref={containerRef}
+      />
+      <div
+        className="divider"
+        title="Drag to resize the columns; double-click resets the width"
+        onDoubleClick={() => {
+          setSplitPct(DEFAULT_SPLIT_PCT);
+          writeSplitPct(DEFAULT_SPLIT_PCT);
+        }}
+        onPointerCancel={() => setDragging(false)}
+        onPointerDown={(event) => {
+          setDragging(true);
+          event.currentTarget.setPointerCapture(event.pointerId);
+          event.preventDefault();
+        }}
+        onPointerMove={(event) => {
+          if (!dragging || !wrapperRef.current) {
+            return;
+          }
+          const rect = wrapperRef.current.getBoundingClientRect();
+          setSplitPct(clampSplitPct(((event.clientX - rect.left) / rect.width) * 100));
+        }}
+        onPointerUp={(event) => {
+          if (!dragging) {
+            return;
+          }
+          event.currentTarget.releasePointerCapture(event.pointerId);
+          writeSplitPct(splitPct);
+          setDragging(false);
+        }}
+      />
       <div className="requests-list">
         <VariablesPanel
           variables={httpFile.variables}
