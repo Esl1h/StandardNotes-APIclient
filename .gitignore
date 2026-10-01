@@ -128,6 +128,10 @@ dist
 .yalc
 yalc.lock
 
+# playwright
+test-results/
+playwright-report/
+
 # misc
 .DS_Store
 .env.local

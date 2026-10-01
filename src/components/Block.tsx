@@ -15,6 +15,21 @@ interface BlockDriverState {
   running: boolean;
   response?: HTTPResponse;
   error?: HTTPError;
+  /** Formatted (pretty printed) body; null when the body is not JSON */
+  prettyBody: string | null;
+}
+
+/** Pretty prints JSON bodies for display; copy keeps the raw text */
+function prettyPrintBody(body: string): string | null {
+  const trimmed = body.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+    return null;
+  }
+  try {
+    return JSON.stringify(JSON.parse(trimmed), null, 2);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -27,7 +42,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
 
   constructor(props: BlockProperties) {
     super(props);
-    this.state = { running: false };
+    this.state = { running: false, prettyBody: null };
   }
 
   componentWillUnmount() {
@@ -38,7 +53,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     this.abortController?.abort();
     const controller = new AbortController();
     this.abortController = controller;
-    this.setState({ running: true, response: undefined, error: undefined });
+    this.setState({ running: true, response: undefined, error: undefined, prettyBody: null });
     executeRequest(this.props.request, { signal: controller.signal }).then(
       (result) => {
         // A newer run owns the state; this stale result must not overwrite it.
@@ -49,6 +64,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
           running: false,
           response: result.response,
           error: result.error,
+          prettyBody: result.response ? prettyPrintBody(result.response.body) : null,
         });
       }
     );
@@ -59,12 +75,19 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
   };
 
   closeResponse = () => {
-    this.setState({ running: false, response: undefined, error: undefined });
+    this.setState({ running: false, response: undefined, error: undefined, prettyBody: null });
+  };
+
+  copyBody = () => {
+    const { response } = this.state;
+    if (response) {
+      navigator.clipboard?.writeText(response.body);
+    }
   };
 
   render() {
     const { request, active, onSelect } = this.props;
-    const { running, response, error } = this.state;
+    const { running, response, error, prettyBody } = this.state;
 
     return (
       <div
@@ -113,6 +136,16 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               <span>{response.timeMs} ms</span>
               <span>{response.sizeBytes} B</span>
               <button
+                className="copy-body"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  this.copyBody();
+                }}
+                title="Copy the raw response body (exactly as received)"
+              >
+                Copy body
+              </button>
+              <button
                 className="close"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -135,7 +168,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
                 </div>
               ))}
             </details>
-            <pre className="response-body">{response.body}</pre>
+            <pre className="response-body">{prettyBody ?? response.body}</pre>
           </div>
         )}
         {error && (

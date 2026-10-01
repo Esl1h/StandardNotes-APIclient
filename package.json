@@ -26,6 +26,7 @@
     "start": "vite --port 3001",
     "build": "vite build",
     "test": "vitest run",
+    "e2e": "playwright test",
     "server": "vite preview --port 3000",
     "server-cors": "vite preview --port 3000",
     "typecheck": "tsc --noEmit",
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.63.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
