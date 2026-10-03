@@ -36,3 +36,29 @@ test('demo edits a request, runs it and renders an inline response', async ({ pa
   // The copy affordance exists for the raw body.
   await expect(page.locator('.block .copy-body')).toBeVisible();
 });
+
+test('demo previews a binary image response and offers it for download', async ({ page }) => {
+  // 1x1 transparent PNG.
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  await page.route('**/echo.local/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'image/png', body: png })
+  );
+
+  await page.goto('/demo.html');
+  const content = page.locator('.cm-content');
+  await content.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('### Logo\nGET http://echo.local/img/logo.png\n');
+
+  await page.locator('.block .run').first().click();
+
+  const image = page.locator('.block .binary-response img');
+  await expect(image).toBeVisible();
+  expect(await image.evaluate((element) => element.naturalWidth)).toBe(1);
+  await expect(page.locator('.block .binary-response a')).toHaveAttribute('download', 'logo.png');
+  await expect(page.locator('.block .response-body')).toHaveCount(0);
+});
+

@@ -7,6 +7,17 @@ const CORS_HINT =
 const FAILED_FETCH =
   /^(Failed to fetch|NetworkError when attempting to fetch resource\.?|Load failed)$/i;
 
+// Content types whose bytes are not text. Anything unknown is read as text,
+// which is what the block can display; svg is text and stays on that side.
+const BINARY_CONTENT_TYPE =
+  /^(?:(?:image|audio|video|font)\/|application\/(?:pdf|octet-stream|zip|gzip|x-gzip|x-tar|x-7z-compressed|x-rar-compressed|msword|wasm|vnd\.(?:ms-|openxmlformats-)))/;
+
+/** True when a Content-Type header describes a response that is not text */
+function isBinaryContentType(contentType: string): boolean {
+  const mime = contentType.split(';')[0].trim().toLowerCase();
+  return mime !== 'image/svg+xml' && BINARY_CONTENT_TYPE.test(mime);
+}
+
 interface ExecuteOptions {
   timeoutMs?: number;
   signal?: AbortSignal;
@@ -52,11 +63,23 @@ async function executeRequest(
       signal: controller.signal,
     });
 
-    const text = await response.text();
     const headers: Record<string, string> = {};
     response.headers.forEach((value, name) => {
       headers[name] = value;
     });
+
+    let text = '';
+    let binary: HTTPResponse['binary'];
+    let decodedSize: number;
+    if (isBinaryContentType(headers['content-type'] ?? '')) {
+      const buffer = await response.arrayBuffer();
+      const contentType = headers['content-type'].split(';')[0].trim();
+      binary = { blob: new Blob([buffer], { type: contentType }), contentType };
+      decodedSize = buffer.byteLength;
+    } else {
+      text = await response.text();
+      decodedSize = new TextEncoder().encode(text).length;
+    }
 
     // content-length is the size on the wire; the decoded text is only the
     // fallback, and says so, since compression makes the two differ.
@@ -67,10 +90,11 @@ async function executeRequest(
       response: {
         status: response.status,
         timeMs: Math.round(performance.now() - startedAt),
-        sizeBytes: hasContentLength ? contentLength : new TextEncoder().encode(text).length,
+        sizeBytes: hasContentLength ? contentLength : decodedSize,
         sizeIsDecoded: !hasContentLength,
         headers,
         body: text,
+        ...(binary && { binary }),
       },
     };
   } catch (error) {
@@ -101,4 +125,4 @@ async function executeRequest(
 }
 
 export type { ExecuteOptions, ExecutionResult };
-export { executeRequest };
+export { executeRequest, isBinaryContentType };

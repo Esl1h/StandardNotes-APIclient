@@ -26,6 +26,9 @@ async function runBlock(result: ExecutionResult, overrides: Partial<HttpRequest>
 
 beforeEach(() => {
   executeMock.mockReset();
+  // jsdom has no object URL support.
+  URL.createObjectURL = vi.fn(() => 'blob:preview');
+  URL.revokeObjectURL = vi.fn();
 });
 
 describe('Block', () => {
@@ -78,5 +81,44 @@ describe('Block', () => {
     });
 
     expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  describe('binary responses', () => {
+    const binaryResponse = (contentType: string): ExecutionResult => ({
+      response: {
+        status: 200,
+        timeMs: 5,
+        sizeBytes: 4,
+        sizeIsDecoded: true,
+        headers: { 'content-type': contentType },
+        body: '',
+        binary: { blob: new Blob([new Uint8Array([1, 2, 3, 4])], { type: contentType }), contentType },
+      },
+    });
+
+    it('previews an image and offers it for download', async () => {
+      await runBlock(binaryResponse('image/png'), { url: 'https://x.y/img/logo.png?v=2' });
+
+      expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:preview');
+      const download = screen.getByRole('link', { name: /download/i });
+      expect(download).toHaveAttribute('href', 'blob:preview');
+      expect(download).toHaveAttribute('download', 'logo.png');
+      expect(screen.queryByRole('button', { name: /copy body/i })).not.toBeInTheDocument();
+    });
+
+    it('offers other binary types for download without a preview', async () => {
+      await runBlock(binaryResponse('application/pdf'), { url: 'https://x.y/' });
+
+      expect(screen.queryByRole('img')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /download/i })).toHaveAttribute('download', 'response');
+    });
+
+    it('releases the object URL when the response is closed', async () => {
+      await runBlock(binaryResponse('image/png'));
+
+      fireEvent.click(screen.getByTitle('Close response'));
+
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+    });
   });
 });
