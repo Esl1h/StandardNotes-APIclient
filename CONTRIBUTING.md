@@ -32,8 +32,9 @@ Then install `http://localhost:3000/ext.dev.json` via Preferences > Plugins
 2. `npm run lint`
 3. `npm test`
 4. `npm run build`
+5. `npm run e2e` (run `npx playwright install chromium` once first)
 
-All four must pass. CI runs the same steps.
+All five must pass. CI runs the same steps.
 
 ## Commit messages
 
