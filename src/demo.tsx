@@ -23,6 +23,8 @@ function DemoEditor() {
   })();
   const [rawText, setRawText] = useState<string>(stored ?? SAMPLE_HTTP_TEXT);
   const [templateName, setTemplateName] = useState<string>(DEFAULT_TEMPLATE_NAME);
+  // A template replaces the whole document, so undo must not reach back past it.
+  const [historyEpoch, setHistoryEpoch] = useState(0);
 
   const onTextChange = (nextText: string) => {
     setRawText(nextText);
@@ -37,6 +39,7 @@ function DemoEditor() {
     const template = DEMO_TEMPLATES.find((item) => item.name === name);
     const nextText = template?.text ?? SAMPLE_HTTP_TEXT;
     setTemplateName(name);
+    setHistoryEpoch((epoch) => epoch + 1);
     onTextChange(nextText);
   };
 
@@ -81,6 +84,7 @@ function DemoEditor() {
             onTextChange(setActiveEnvironment(rawText, environment))
           }
           activeEnvironment={httpFile.environment}
+          historyEpoch={historyEpoch}
         />
       </main>
       <footer className="demo-footer">
