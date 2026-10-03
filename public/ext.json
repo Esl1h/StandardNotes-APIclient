@@ -3,6 +3,7 @@
   "name": "API Client",
   "content_type": "SN|Component",
   "area": "editor-editor",
+  "note_type": "code",
   "version": "0.3.1",
   "description": "HTTP API client editor for Standard Notes, using .http syntax",
   "url": "https://esli.cafe/StandardNotes-APIclient/index.html",
