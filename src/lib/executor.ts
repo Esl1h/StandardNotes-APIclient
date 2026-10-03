@@ -58,11 +58,17 @@ async function executeRequest(
       headers[name] = value;
     });
 
+    // content-length is the size on the wire; the decoded text is only the
+    // fallback, and says so, since compression makes the two differ.
+    const contentLength = Number(headers['content-length']);
+    const hasContentLength = headers['content-length'] !== undefined && Number.isFinite(contentLength);
+
     return {
       response: {
         status: response.status,
         timeMs: Math.round(performance.now() - startedAt),
-        sizeBytes: new TextEncoder().encode(text).length,
+        sizeBytes: hasContentLength ? contentLength : new TextEncoder().encode(text).length,
+        sizeIsDecoded: !hasContentLength,
         headers,
         body: text,
       },

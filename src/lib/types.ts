@@ -3,7 +3,10 @@ import { type HttpFile } from './parser';
 interface HTTPResponse {
   status: number;
   timeMs: number;
+  /** Transfer size from content-length, else the size of the decoded body */
   sizeBytes: number;
+  /** True when sizeBytes measures the decoded body, not what went over the wire */
+  sizeIsDecoded: boolean;
   headers: Record<string, string>;
   body: string;
 }
