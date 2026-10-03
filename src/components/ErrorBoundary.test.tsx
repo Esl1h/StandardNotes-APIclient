@@ -9,12 +9,17 @@ function Boom({ crash }: { crash: boolean }) {
   return <p>editor is fine</p>;
 }
 
+// React in development rethrows render errors to window, where jsdom prints
+// them as uncaught; mark them handled and mute the logging to keep output clean.
+const swallowWindowError = (event: ErrorEvent) => event.preventDefault();
+
 beforeEach(() => {
-  // React logs every caught render error; keep the test output readable.
+  window.addEventListener('error', swallowWindowError);
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
+  window.removeEventListener('error', swallowWindowError);
   vi.restoreAllMocks();
 });
 
