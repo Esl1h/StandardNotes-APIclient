@@ -11,6 +11,8 @@ interface HTTPResponse {
 interface HTTPError {
   kind: 'network' | 'timeout' | 'aborted';
   message: string;
+  /** Likely cause and what to do about it, when one is known */
+  hint?: string;
 }
 
 interface EditorInternalInterface {

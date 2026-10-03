@@ -174,6 +174,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
         {error && (
           <div className="error">
             Request failed ({error.kind}): {error.message}
+            {error.hint && <div className="error-hint">{error.hint}</div>}
           </div>
         )}
       </div>

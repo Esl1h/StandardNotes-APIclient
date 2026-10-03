@@ -227,6 +227,11 @@
     .error {
       margin-top: 8px;
       color: var(--sn-stylekit-danger-color);
+
+      .error-hint {
+        margin-top: 4px;
+        color: var(--sn-stylekit-neutral-color);
+      }
     }
 
     .running {
