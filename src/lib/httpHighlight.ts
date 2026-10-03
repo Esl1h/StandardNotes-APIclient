@@ -15,6 +15,14 @@ const httpHighlighter = StreamLanguage.define({
     return { method: 'idle' as 'idle' | 'headers' | 'body' };
   },
   token(stream, state) {
+    // Leading whitespace: consume it so indented lines (JSON bodies) advance.
+    if (stream.sol() && stream.eatSpace()) {
+      // The parser treats whitespace-only lines as blank, so mirror that.
+      if (stream.eol() && state.method === 'headers') {
+        state.method = 'body';
+      }
+      return null;
+    }
     if (stream.sol()) {
       if (stream.match(/^#{3}.*$/)) {
         state.method = 'idle';
@@ -41,17 +49,19 @@ const httpHighlighter = StreamLanguage.define({
         if (stream.match(/^[\w-]+\s*:/)) {
           return 'propertyName';
         }
-        if (stream.match(/^$/)) {
-          // A blank line closes the headers; the next one opens the body.
-          state.method = 'body';
-          return null;
-        }
       }
-      stream.match(/\S+/);
+      // Guarantee progress: StreamLanguage throws if a token call does not advance.
+      if (!stream.match(/\S+/)) {
+        stream.next();
+      }
       return null;
     }
     // Mid-line continuation after method word or header name.
-    if (stream.match(/\s+/)) {
+    if (stream.eatSpace()) {
+      return null;
+    }
+    if (state.method === 'body') {
+      stream.skipToEnd();
       return null;
     }
     if (stream.match(/\S+/)) {
@@ -59,6 +69,13 @@ const httpHighlighter = StreamLanguage.define({
     }
     stream.next();
     return null;
+  },
+  // StreamLanguage never calls token() for empty lines, so the headers/body
+  // switch has to live here.
+  blankLine(state) {
+    if (state.method === 'headers') {
+      state.method = 'body';
+    }
   },
   tokenTable: {
     heading: t.heading,
