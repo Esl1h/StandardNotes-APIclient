@@ -97,6 +97,22 @@ describe('Editor', () => {
     expect(blocks[1]).toHaveClass('active');
   });
 
+  it('keeps a block mounted, and its response with it, when lines are added above', () => {
+    const { container, loadNote, getView } = setup();
+    loadNote('### One\nGET https://a.example\n\n### Two\nGET https://b.example\n');
+    const secondBlock = container.querySelectorAll('.block')[1];
+
+    act(() => {
+      getView().dispatch({
+        changes: { from: 0, insert: '# a new comment\n# and another\n\n' },
+        userEvent: 'input.type',
+      });
+    });
+
+    expect(container.querySelectorAll('.block')).toHaveLength(2);
+    expect(container.querySelectorAll('.block')[1]).toBe(secondBlock);
+  });
+
   it('does not let undo restore the text of the previous note', () => {
     const { getView, save, loadNote, type } = setup();
     loadNote('GET https://note-a.example');

@@ -115,6 +115,17 @@ function EditorInternal(props: EditorInternalInterface) {
     return nextIndex;
   }, [httpFile.requests, caretLine]);
 
+  // Keyed by title and repeat count, not by line: adding lines above a block
+  // must not remount it and drop the response it is showing.
+  const blockKeys = useMemo(() => {
+    const seen = new Map<string, number>();
+    return httpFile.requests.map((request) => {
+      const ordinal = seen.get(request.title) ?? 0;
+      seen.set(request.title, ordinal + 1);
+      return `${request.title}#${ordinal}`;
+    });
+  }, [httpFile.requests]);
+
   return (
     <div className={dragging ? 'api-client dragging' : 'api-client'} ref={wrapperRef}>
       <div
@@ -169,7 +180,7 @@ function EditorInternal(props: EditorInternalInterface) {
         )}
         {httpFile.requests.map((request, index) => (
           <Block
-            key={request.lineIndex}
+            key={blockKeys[index]}
             request={request}
             active={activeIndex === index}
             onSelect={() => {
