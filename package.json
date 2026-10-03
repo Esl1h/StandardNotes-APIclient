@@ -36,7 +36,7 @@
   "dependencies": {
     "@codemirror/language": "^6.12.4",
     "@lezer/highlight": "^1.2.5",
-    "@standardnotes/editor-kit": "^2.3.1",
+    "@standardnotes/editor-kit": "github:standardnotes/editor-kit#626d7a6e63d4ada48be36676c466fea46d7709d3",
     "@standardnotes/stylekit": "^5.29.3",
     "codemirror": "^6.0.2",
     "react": "^18.3.1",

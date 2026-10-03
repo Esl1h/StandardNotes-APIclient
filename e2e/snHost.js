@@ -71,8 +71,10 @@ const HOST_HTML = `<!doctype html>
 /**
  * Opens the plugin inside the fake host and streams `text` as the first note.
  * `throttle` slows the CPU down (CDP rate) to mimic a mobile WebView.
+ * `opaqueOrigin` serves the host with origin "null" and no referrer, like
+ * the mobile app, whose web UI runs from a local file inside a WebView.
  */
-async function openHost(page, { text, throttle = 1 }) {
+async function openHost(page, { text, throttle = 1, opaqueOrigin = false }) {
   if (throttle > 1) {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
@@ -80,8 +82,16 @@ async function openHost(page, { text, throttle = 1 }) {
   await page.addInitScript((note) => {
     window.__initialNote = note;
   }, text);
+  const headers = opaqueOrigin
+    ? {
+        // Opaque origin for the host; the plugin iframe inherits the sandbox,
+        // as the real one has no allow-same-origin.
+        'Content-Security-Policy': 'sandbox allow-scripts',
+        'Referrer-Policy': 'no-referrer',
+      }
+    : {};
   await page.route('**/__sn-host.html', (route) =>
-    route.fulfill({ contentType: 'text/html', body: HOST_HTML })
+    route.fulfill({ contentType: 'text/html', headers, body: HOST_HTML })
   );
   await page.goto('/__sn-host.html');
   return page.frameLocator('#f');
