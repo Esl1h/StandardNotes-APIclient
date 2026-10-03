@@ -184,6 +184,21 @@ function readActiveEnvironment(text: string): string | null {
   return match ? (match[1] ?? null) : null;
 }
 
+/**
+ * Adds a header, merging with an earlier one of the same name (any case) the
+ * way fetch combines repeated headers, so a later line does not silently
+ * replace an earlier one. The first spelling of the name is kept.
+ */
+function addHeader(headers: Record<string, string>, name: string, value: string): void {
+  const lowerName = name.toLowerCase();
+  const existing = Object.keys(headers).find((key) => key.toLowerCase() === lowerName);
+  if (existing === undefined) {
+    headers[name] = value;
+    return;
+  }
+  headers[existing] += `${lowerName === 'cookie' ? '; ' : ', '}${value}`;
+}
+
 /** Sets the collected body without trailing blank space; an empty one stays unset. */
 function attachBody(request: HttpRequest, bodyLines: string[]): void {
   const body = bodyLines.join('\n').replace(/\s+$/, '');
@@ -277,7 +292,7 @@ function parseHttpFile(text: string): HttpFile {
 
     const headerMatch = trimmed.match(HEADER_LINE);
     if (headerMatch) {
-      currentRequest.headers[headerMatch[1]] = headerMatch[2].trim();
+      addHeader(currentRequest.headers, headerMatch[1], headerMatch[2].trim());
       sawHeaderOrRequest = true;
     } else {
       // Unrecognized content after headers without a blank separator:

@@ -422,4 +422,31 @@ describe('parseHttpFile', () => {
       expect(file.requests[0].body).toBe('line1\n// still body\nline3');
     });
   });
+
+  describe('repeated headers', () => {
+    it('joins repeated headers with a comma, as fetch would on the wire', () => {
+      const file = parseHttpFile('GET https://x.y\nAccept: text/html\nAccept: application/json\n');
+
+      expect(file.requests[0].headers).toEqual({ Accept: 'text/html, application/json' });
+    });
+
+    it('joins repeated Cookie headers with a semicolon', () => {
+      const file = parseHttpFile('GET https://x.y\nCookie: a=1\nCookie: b=2\n');
+
+      expect(file.requests[0].headers).toEqual({ Cookie: 'a=1; b=2' });
+    });
+
+    it('treats names that differ only in case as one header, keeping the first spelling', () => {
+      const file = parseHttpFile('GET https://x.y\ncontent-type: a\nContent-Type: b\n');
+
+      expect(file.requests[0].headers).toEqual({ 'content-type': 'a, b' });
+    });
+
+    it('does not mix headers across requests', () => {
+      const file = parseHttpFile('GET https://x.y\nAccept: a\n\n### Two\nGET https://x.y\nAccept: b\n');
+
+      expect(file.requests[0].headers).toEqual({ Accept: 'a' });
+      expect(file.requests[1].headers).toEqual({ Accept: 'b' });
+    });
+  });
 });
