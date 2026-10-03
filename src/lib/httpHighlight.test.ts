@@ -58,6 +58,13 @@ describe('httpHighlighter', () => {
     });
   });
 
+  it('gives the HTTP version suffix its own token', () => {
+    const names: string[] = [];
+    parseFully('GET https://x.y HTTP/1.1\n')?.iterate({ enter: (node) => void names.push(node.name) });
+
+    expect(names).toContain('meta');
+  });
+
   it('never throws on arbitrary text', () => {
     fc.assert(
       fc.property(fc.string({ unit: 'binary' }), (text) => {
