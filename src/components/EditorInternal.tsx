@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { EditorState } from '@codemirror/state';
+import { Annotation, EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { defaultKeymap, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { minimalSetup } from 'codemirror';
@@ -8,6 +8,9 @@ import VariablesPanel from './VariablesPanel';
 import { type EditorInternalInterface } from '../lib/types';
 import { httpEditorTheme, httpHighlightExtensions } from '../lib/httpHighlight';
 import { DEFAULT_SPLIT_PCT, clampSplitPct, readSplitPct, writeSplitPct } from '../lib/layout';
+
+/** Marks transactions that sync the view with the prop, so they are not saved back. */
+const External = Annotation.define<boolean>();
 
 function EditorInternal(props: EditorInternalInterface) {
   const { rawText, httpFile, onTextChange, onInsertSample, onSetEnvironment, activeEnvironment } =
@@ -33,7 +36,10 @@ function EditorInternal(props: EditorInternalInterface) {
           httpEditorTheme(),
           ...httpHighlightExtensions,
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
+            if (
+              update.docChanged &&
+              !update.transactions.some((transaction) => transaction.annotation(External))
+            ) {
               onTextChange(update.state.doc.toString());
             }
             if (update.selectionSet) {
@@ -72,6 +78,7 @@ function EditorInternal(props: EditorInternalInterface) {
     if (view.state.doc.toString() !== rawText) {
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: rawText },
+        annotations: External.of(true),
       });
     }
   }, [rawText]);
