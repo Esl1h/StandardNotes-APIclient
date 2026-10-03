@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import {
   parseHttpFile,
   setActiveEnvironment,
@@ -325,6 +326,73 @@ describe('parseHttpFile', () => {
       const file = parseHttpFile('POST https://example.com\n\nline1\n\nline2  \n\n \n### Next\n');
 
       expect(file.requests[0].body).toBe('line1\n\nline2');
+    });
+  });
+
+  describe('cyclic variables', () => {
+    it.each([
+      ['self reference in an environment', '@env = dev\n@a.dev = {{a}}x\nGET https://e.com/{{a}}\n'],
+      [
+        'indirect cycle in an environment',
+        '@env = dev\n@a.dev = {{b}}\n@b.dev = {{a}}\nGET https://e.com/{{a}}\n',
+      ],
+      ['indirect cycle in the base scope', '@a = {{b}}\n@b = {{a}}\nGET https://e.com/{{a}}\n'],
+      ['self reference in the base scope', '@a = {{a}}\nGET https://e.com/{{a}}\n'],
+      [
+        'base cycle reached from an environment',
+        '@env = dev\n@a = {{b}}\n@b = {{a}}\n@c.dev = {{a}}\nGET https://e.com/{{c}}\n',
+      ],
+      ['qualified reference to itself', '@a.dev = {{a.dev}}\nGET https://e.com/{{a.dev}}\n'],
+    ])('does not throw on %s', (_name, text) => {
+      expect(() => parseHttpFile(text)).not.toThrow();
+    });
+
+    it('leaves the reference that closes a cycle as literal text', () => {
+      const file = parseHttpFile('@env = dev\n@a.dev = {{a}}x\nGET https://e.com/{{a}}\n');
+
+      expect(file.requests).toHaveLength(1);
+      expect(file.variables.find((variable) => variable.name === 'a')?.value).toBe('{{a}}x');
+      expect(file.requests[0].url).toBe('https://e.com/{{a}}x');
+    });
+
+    it('still resolves variables that merely share a dependency', () => {
+      const text = '@env = dev\n@base = b\n@x.dev = {{base}}1\n@y.dev = {{base}}2\nGET https://e.com/{{x}}{{y}}\n';
+
+      expect(parseHttpFile(text).requests[0].url).toBe('https://e.com/b1b2');
+    });
+  });
+
+  describe('robustness', () => {
+    it('never throws on arbitrary text', () => {
+      fc.assert(
+        fc.property(fc.string({ unit: 'binary' }), (text) => {
+          expect(() => parseHttpFile(text)).not.toThrow();
+        })
+      );
+    });
+
+    it('never throws on text built from .http building blocks', () => {
+      const piece = fc.constantFrom(
+        '### t',
+        '@env = dev',
+        '@env = prod',
+        '@a = {{b}}',
+        '@b = {{a}}',
+        '@a.dev = {{a}}x',
+        '@b.prod = {{a.dev}}',
+        '@c = {{c}}',
+        'GET https://x.y/{{a}}',
+        'POST {{b}} HTTP/1.1',
+        'X-A: {{a}}',
+        '',
+        '  "k": {{b}}',
+        '# c'
+      );
+      fc.assert(
+        fc.property(fc.array(piece, { maxLength: 20 }), (pieces) => {
+          expect(() => parseHttpFile(pieces.join('\n'))).not.toThrow();
+        })
+      );
     });
   });
 });

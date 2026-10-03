@@ -51,15 +51,13 @@ const ENV_DECLARATION_LINE = /^@env(?:\s*=\s*([A-Za-z0-9_-]+))?\s*$/m;
 
 type VariableLookup = (ref: string) => string | undefined;
 
-/**
- * Builds a resolver for the {{name}} / {{name.env}} references against the
- * parsed variables. Bare names check the active environment map first and
- * fall back to the default scope; qualified names check only that scope.
- */
-function variableLookup(
-  variables: HttpVariable[],
-  activeEnvironment: string | null
-): VariableLookup {
+interface VariableScopes {
+  base: Map<string, string>;
+  byEnvironment: Map<string, Map<string, string>>;
+}
+
+/** Groups the declared variables by scope; the last declaration of a name wins. */
+function buildScopes(variables: HttpVariable[]): VariableScopes {
   const base = new Map<string, string>();
   const byEnvironment = new Map<string, Map<string, string>>();
 
@@ -75,6 +73,20 @@ function variableLookup(
       map.set(variable.name, variable.value);
     }
   }
+
+  return { base, byEnvironment };
+}
+
+/**
+ * Builds a resolver for the {{name}} / {{name.env}} references against the
+ * parsed variables. Bare names check the active environment map first and
+ * fall back to the default scope; qualified names check only that scope.
+ */
+function variableLookup(
+  variables: HttpVariable[],
+  activeEnvironment: string | null
+): VariableLookup {
+  const { base, byEnvironment } = buildScopes(variables);
 
   return (ref: string) => {
     const dot = ref.indexOf('.');
@@ -108,21 +120,7 @@ function resolveVariables(
   variables: HttpVariable[],
   activeEnvironment: string | null
 ): VariableLookup {
-  const base = new Map<string, string>();
-  const byEnvironment = new Map<string, Map<string, string>>();
-
-  for (const variable of variables) {
-    if (variable.env === undefined) {
-      base.set(variable.name, variable.value);
-    } else {
-      let map = byEnvironment.get(variable.env);
-      if (!map) {
-        map = new Map();
-        byEnvironment.set(variable.env, map);
-      }
-      map.set(variable.name, variable.value);
-    }
-  }
+  const { base, byEnvironment } = buildScopes(variables);
 
   const baseLookup: VariableLookup = (ref) => base.get(ref);
   for (const [name, raw] of base.entries()) {
@@ -130,13 +128,27 @@ function resolveVariables(
   }
 
   for (const environmentMap of byEnvironment.values()) {
-    const environmentLookup: VariableLookup = (ref) => {
+    // `seen` holds the variables being expanded on the current path: meeting
+    // one again is a cycle, left as literal {{ref}} text instead of recursing.
+    const environmentLookup = (
+      ref: string,
+      seen: ReadonlySet<string> = new Set()
+    ): string | undefined => {
       const name = ref.indexOf('.') > -1 ? ref.slice(0, ref.indexOf('.')) : ref;
+      if (seen.has(name)) {
+        return undefined;
+      }
       const raw = environmentMap.get(name) ?? base.get(name);
-      return raw !== undefined ? interpolate(raw, environmentLookup) : undefined;
+      if (raw === undefined) {
+        return undefined;
+      }
+      const path = new Set(seen).add(name);
+      return interpolate(raw, (inner) => environmentLookup(inner, path));
     };
     for (const [name, raw] of environmentMap.entries()) {
-      environmentMap.set(name, interpolate(raw, environmentLookup));
+      // Seeded with the variable itself so a self reference stays literal.
+      const path = new Set([name]);
+      environmentMap.set(name, interpolate(raw, (ref) => environmentLookup(ref, path)));
     }
   }
 
