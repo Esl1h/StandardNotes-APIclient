@@ -65,7 +65,8 @@
           color: var(--sn-stylekit-neutral-contrast-color);
         }
 
-        .copy {
+        .copy,
+        .reveal {
           background: none;
           border: none;
           color: var(--sn-stylekit-neutral-color);

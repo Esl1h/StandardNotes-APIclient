@@ -8,11 +8,18 @@ interface VariablesPanelInterface {
   onSetEnvironment: (environment: string | null) => void;
 }
 
+// Names that usually hold credentials. Their values are masked until revealed,
+// since the panel shows resolved values and sits on screen next to the note.
+const SECRET_NAME = /token|secret|key|pass(?:word|wd)|auth/i;
+// A fixed width, so the mask does not leak the length of the value.
+const MASK = '••••••••';
+
 /** Sidebar section listing the file variables (with copy buttons) and the
  * environment chips used to switch the @env declaration in the text. */
 function VariablesPanel(props: VariablesPanelInterface) {
   const { variables, environments, activeEnvironment, onSetEnvironment } = props;
   const [copied, setCopied] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
 
   if (variables.length === 0) {
     return null;
@@ -21,6 +28,16 @@ function VariablesPanel(props: VariablesPanelInterface) {
   // A variable can be redefined; the line tells the rows apart.
   const rowKey = (variable: HttpVariable) =>
     `${variable.env ? `${variable.name}.${variable.env}` : variable.name}:${variable.lineIndex}`;
+
+  const toggleReveal = (key: string) => {
+    setRevealed((current) => {
+      const next = new Set(current);
+      if (!next.delete(key)) {
+        next.add(key);
+      }
+      return next;
+    });
+  };
 
   const copy = (variable: HttpVariable) => {
     navigator.clipboard?.writeText(variable.value);
@@ -54,16 +71,28 @@ function VariablesPanel(props: VariablesPanelInterface) {
       <ul>
         {variables.map((variable) => {
           const fullKey = variable.env ? `${variable.name}.${variable.env}` : variable.name;
+          const key = rowKey(variable);
+          const secret = SECRET_NAME.test(variable.name);
+          const masked = secret && !revealed.has(key);
           return (
-            <li key={rowKey(variable)} className="variable-row">
+            <li key={key} className="variable-row">
               <span className="variable-name">{fullKey}</span>
-              <span className="variable-value">{variable.value}</span>
+              <span className="variable-value">{masked ? MASK : variable.value}</span>
+              {secret && (
+                <button
+                  className="reveal"
+                  onClick={() => toggleReveal(key)}
+                  title={`${masked ? 'Show' : 'Hide'} the value of ${fullKey}`}
+                >
+                  {masked ? 'show' : 'hide'}
+                </button>
+              )}
               <button
                 className="copy"
                 onClick={() => copy(variable)}
                 title={`Copy the value of ${fullKey}`}
               >
-                {copied === rowKey(variable) ? 'copied' : 'copy'}
+                {copied === key ? 'copied' : 'copy'}
               </button>
             </li>
           );
