@@ -256,3 +256,35 @@
     }
   }
 }
+
+.note-status,
+.error-fallback {
+  padding: 12px;
+  color: var(--sn-stylekit-neutral-color);
+}
+
+.error-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100vh;
+  height: 100dvh;
+  box-sizing: border-box;
+
+  p {
+    margin: 0;
+    color: var(--sn-stylekit-danger-color);
+  }
+
+  textarea {
+    flex: 1;
+    resize: none;
+    border: 1px solid var(--sn-stylekit-border-color);
+    border-radius: 8px;
+    padding: 8px;
+    background-color: var(--sn-stylekit-contrast-background-color);
+    color: var(--sn-stylekit-contrast-foreground-color);
+    font-family: var(--sn-stylekit-monospace-font, monospace);
+    font-size: var(--sn-stylekit-font-size-editor);
+  }
+}

@@ -7,14 +7,20 @@ import { HttpFile } from '../lib/parser';
 import { parseHttpFile } from '../lib/parser';
 import './Editor.css';
 import EditorInternal from './EditorInternal';
+import ErrorBoundary from './ErrorBoundary';
 
-const initialText = SAMPLE_HTTP_TEXT;
+/** How long to wait for Standard Notes to stream the note before saying so */
+const NOTE_WAIT_MS = 5000;
 
 interface EditorInterface {
   httpFile: HttpFile | null;
   rawText: string;
   /** Bumped on every note switch; resets the editor's undo history */
   historyEpoch: number;
+  /** True once Standard Notes has streamed the note in */
+  noteReceived: boolean;
+  /** True when no note arrived within NOTE_WAIT_MS */
+  waitTimedOut: boolean;
 }
 
 export default class Editor extends React.Component<
@@ -27,16 +33,32 @@ export default class Editor extends React.Component<
   constructor(props: Record<string, never>) {
     super(props);
     this.configureEditorKit();
-    // Start with pristine text as a placeholder; once the note is ready,
-    // setEditorRawText overwrites this with the actual note content.
-    this.state = { httpFile: parseHttpFile(initialText), rawText: initialText, historyEpoch: 0 };
+    // Nothing is rendered until setEditorRawText delivers the note: an
+    // editable placeholder would swallow typing that EditorKit drops.
+    this.state = {
+      httpFile: parseHttpFile(''),
+      rawText: '',
+      historyEpoch: 0,
+      noteReceived: false,
+      waitTimedOut: false,
+    };
+  }
+
+  waitTimer?: ReturnType<typeof setTimeout>;
+
+  componentDidMount() {
+    this.waitTimer = setTimeout(() => this.setState({ waitTimedOut: true }), NOTE_WAIT_MS);
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.waitTimer);
   }
 
   configureEditorKit = () => {
     const delegate: EditorKitDelegate = {
       setEditorRawText: (text: string) => {
         const httpFile = parseHttpFile(text);
-        this.setState({ rawText: text, httpFile });
+        this.setState({ rawText: text, httpFile, noteReceived: true });
       },
       // EditorKit calls this after setEditorRawText when the note changed.
       clearUndoHistory: () => {
@@ -78,16 +100,31 @@ export default class Editor extends React.Component<
   };
 
   render() {
+    if (!this.state.noteReceived) {
+      return (
+        <div className="note-status" role="status">
+          {this.state.waitTimedOut
+            ? 'The note was not received from Standard Notes. Close and reopen it, or restart the app.'
+            : 'Waiting for the note...'}
+        </div>
+      );
+    }
     return (
-      <EditorInternal
+      <ErrorBoundary
         rawText={this.state.rawText}
-        httpFile={this.state.httpFile}
-        onTextChange={this.handleTextChange}
-        onInsertSample={this.handleInsertSample}
-        onSetEnvironment={this.handleSetEnvironment}
-        activeEnvironment={this.state.httpFile.environment}
-        historyEpoch={this.state.historyEpoch}
-      />
+        onRawTextChange={this.saveNote}
+        resetKey={this.state.historyEpoch}
+      >
+        <EditorInternal
+          rawText={this.state.rawText}
+          httpFile={this.state.httpFile}
+          onTextChange={this.handleTextChange}
+          onInsertSample={this.handleInsertSample}
+          onSetEnvironment={this.handleSetEnvironment}
+          activeEnvironment={this.state.httpFile.environment}
+          historyEpoch={this.state.historyEpoch}
+        />
+      </ErrorBoundary>
     );
   }
 }
