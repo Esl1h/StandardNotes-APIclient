@@ -41,7 +41,7 @@ const httpHighlighter = StreamLanguage.define({
         state.method = 'headers';
         return 'keyword';
       }
-      if (state.method === 'idle' && stream.match(/^https?:\/\/\S+/)) {
+      if (state.method === 'idle' && stream.match(/^(?:https?:\/\/\S+|\{\{[^}]*\}\}\S*)/)) {
         state.method = 'headers';
         return 'url';
       }

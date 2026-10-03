@@ -479,4 +479,31 @@ describe('parseHttpFile', () => {
       expect(file.requests[0].body).toBe('?not=a-query');
     });
   });
+
+  describe('url-only lines starting with a variable', () => {
+    it('accepts {{baseUrl}}/path without a method, defaulting to GET', () => {
+      const file = parseHttpFile('@baseUrl = https://api.example.com\n\n### Ping\n{{baseUrl}}/ping\n');
+
+      expect(file.requests).toHaveLength(1);
+      expect(file.requests[0]).toMatchObject({
+        method: 'GET',
+        url: 'https://api.example.com/ping',
+        title: 'Ping',
+      });
+    });
+
+    it('accepts spaces inside the braces and an HTTP version', () => {
+      const file = parseHttpFile('@h = https://x.y\n{{ h }}/a HTTP/1.1\nAccept: */*\n');
+
+      expect(file.requests[0]).toMatchObject({ method: 'GET', url: 'https://x.y/a' });
+      expect(file.requests[0].headers).toEqual({ Accept: '*/*' });
+    });
+
+    it('does not start a request from a {{variable}} line inside a body', () => {
+      const file = parseHttpFile('POST https://x.y\n\n{{token}}\n');
+
+      expect(file.requests).toHaveLength(1);
+      expect(file.requests[0].body).toBe('{{token}}');
+    });
+  });
 });
