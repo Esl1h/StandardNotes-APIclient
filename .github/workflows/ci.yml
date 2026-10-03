@@ -35,3 +35,26 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # Builds and serves the plugin like a Standard Notes dev install, then
+      # runs the demo flow and the host harness, including the throttled
+      # mobile registration scenario.
+      - name: End to end tests
+        run: npm run e2e
