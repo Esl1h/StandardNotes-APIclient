@@ -119,7 +119,8 @@ function EditorInternal(props: EditorInternalInterface) {
     <div className={dragging ? 'api-client dragging' : 'api-client'} ref={wrapperRef}>
       <div
         className="raw-editor-container"
-        style={{ width: `${splitPct}%` }}
+        // A custom property, not a width, so the narrow layout can override it.
+        style={{ '--editor-width': `${splitPct}%` } as React.CSSProperties}
         ref={containerRef}
       />
       <div

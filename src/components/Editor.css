@@ -4,6 +4,7 @@
   gap: 0;
   padding: 12px;
   height: 100vh;
+  height: 100dvh;
 
   .requests-list {
     flex: 1;
@@ -99,6 +100,7 @@
 
   .raw-editor-container {
     flex: none;
+    width: var(--editor-width, 38%);
     overflow: hidden;
     border: 1px solid var(--sn-stylekit-border-color);
     border-radius: 8px;
@@ -131,6 +133,29 @@
   &.dragging {
     cursor: col-resize;
     user-select: none;
+  }
+
+  /* Side by side panels leave the editor unusably narrow on a phone. */
+  @media (max-width: 640px) {
+    flex-direction: column;
+
+    .raw-editor-container {
+      flex: 1 1 0;
+      width: auto;
+      min-height: 0;
+    }
+
+    .divider {
+      display: none;
+    }
+
+    .requests-list {
+      flex: 1 1 0;
+      min-height: 0;
+      /* Same single seam as the wide layout, now horizontal. */
+      margin-left: 0;
+      margin-top: -1px;
+    }
   }
 
   .block {

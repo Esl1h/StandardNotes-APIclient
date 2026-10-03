@@ -60,6 +60,42 @@ test('undo does not bring back the text of the previous note', async ({ page }) 
   expect(await hostLogs(page, 'save-items')).toHaveLength(1);
 });
 
+const TWO_REQUESTS = 'GET https://a.example\n\n### B\nGET https://b.example\n';
+
+test.describe('narrow screens', () => {
+  test.use({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true });
+
+  test('stack the editor above the requests at full width', async ({ page }) => {
+    const plugin = await openHost(page, { text: TWO_REQUESTS });
+    await expect(plugin.locator('.block')).toHaveCount(2);
+
+    const editor = await plugin.locator('.raw-editor-container').boundingBox();
+    const list = await plugin.locator('.requests-list').boundingBox();
+
+    expect(editor.width).toBeGreaterThan(350);
+    expect(list.width).toBeGreaterThan(350);
+    expect(editor.height).toBeGreaterThan(200);
+    expect(list.height).toBeGreaterThan(200);
+    expect(list.y).toBeGreaterThanOrEqual(editor.y + editor.height - 2);
+    await expect(plugin.locator('.divider')).toBeHidden();
+  });
+});
+
+test.describe('wide screens', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test('keep the editor and the requests side by side', async ({ page }) => {
+    const plugin = await openHost(page, { text: TWO_REQUESTS });
+    await expect(plugin.locator('.block')).toHaveCount(2);
+
+    const editor = await plugin.locator('.raw-editor-container').boundingBox();
+    const list = await plugin.locator('.requests-list').boundingBox();
+
+    expect(list.x).toBeGreaterThanOrEqual(editor.x + editor.width - 2);
+    expect(Math.abs(list.y - editor.y)).toBeLessThan(2);
+  });
+});
+
 test.describe('mobile WebView with a slow CPU', () => {
   test.use({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true });
 
