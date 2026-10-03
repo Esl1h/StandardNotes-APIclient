@@ -73,4 +73,18 @@ describe('Editor', () => {
     expect(save).toHaveBeenCalledTimes(1);
     expect(save).toHaveBeenCalledWith('GET https://a.example?x=1');
   });
+
+  it('marks the block of the request under the caret as active', () => {
+    const { view, container, loadNote } = setup();
+    loadNote('### One\nGET https://a.example\n\n### Two\nGET https://b.example\n');
+
+    act(() => {
+      view.dispatch({ selection: { anchor: view.state.doc.line(5).from } });
+    });
+
+    const blocks = container.querySelectorAll('.block');
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]).not.toHaveClass('active');
+    expect(blocks[1]).toHaveClass('active');
+  });
 });

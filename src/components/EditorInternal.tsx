@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Annotation, EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { defaultKeymap, historyKeymap, indentWithTab } from '@codemirror/commands';
@@ -18,7 +18,7 @@ function EditorInternal(props: EditorInternalInterface) {
   const viewRef = useRef<EditorView | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [caretLine, setCaretLine] = useState<number | null>(null);
   const [splitPct, setSplitPct] = useState<number>(() => readSplitPct());
   const [dragging, setDragging] = useState(false);
 
@@ -42,21 +42,9 @@ function EditorInternal(props: EditorInternalInterface) {
             ) {
               onTextChange(update.state.doc.toString());
             }
-            if (update.selectionSet) {
+            if (update.selectionSet || update.docChanged) {
               const offset = update.state.selection.main.head;
-              const line = update.state.doc.lineAt(offset).number - 1;
-              let nextIndex: number | null = null;
-              for (let index = 0; index < httpFile.requests.length; index++) {
-                const request = httpFile.requests[index];
-                const nextRequest = httpFile.requests[index + 1];
-                if (
-                  request.lineIndex <= line &&
-                  (!nextRequest || nextRequest.lineIndex > line)
-                ) {
-                  nextIndex = index;
-                }
-              }
-              setActiveIndex(nextIndex);
+              setCaretLine(update.state.doc.lineAt(offset).number - 1);
             }
           }),
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
@@ -82,6 +70,23 @@ function EditorInternal(props: EditorInternalInterface) {
       });
     }
   }, [rawText]);
+
+  // The block under the caret, derived so it follows the latest parse; the
+  // view listener only knows the caret line.
+  const activeIndex = useMemo(() => {
+    if (caretLine === null) {
+      return null;
+    }
+    let nextIndex: number | null = null;
+    for (let index = 0; index < httpFile.requests.length; index++) {
+      const request = httpFile.requests[index];
+      const nextRequest = httpFile.requests[index + 1];
+      if (request.lineIndex <= caretLine && (!nextRequest || nextRequest.lineIndex > caretLine)) {
+        nextIndex = index;
+      }
+    }
+    return nextIndex;
+  }, [httpFile.requests, caretLine]);
 
   return (
     <div className={dragging ? 'api-client dragging' : 'api-client'} ref={wrapperRef}>
