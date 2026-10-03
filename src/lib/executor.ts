@@ -1,5 +1,12 @@
 import type { HTTPError, HTTPResponse } from './types';
 
+const CORS_HINT =
+  'Probable CORS block: the API must answer with an Access-Control-Allow-Origin header that allows this page.';
+
+// A blocked or unreachable fetch is a bare TypeError, worded per browser.
+const FAILED_FETCH =
+  /^(Failed to fetch|NetworkError when attempting to fetch resource\.?|Load failed)$/i;
+
 interface ExecuteOptions {
   timeoutMs?: number;
   signal?: AbortSignal;
@@ -72,10 +79,13 @@ async function executeRequest(
     if (options.signal?.aborted) {
       return { error: { kind: 'aborted', message: 'Request cancelled' } };
     }
+    const message = error instanceof Error ? error.message : 'Network error';
+    const probablyCors = error instanceof TypeError && FAILED_FETCH.test(message);
     return {
       error: {
         kind: 'network',
-        message: error instanceof Error ? error.message : 'Network error',
+        message,
+        ...(probablyCors && { hint: CORS_HINT }),
       },
     };
   } finally {

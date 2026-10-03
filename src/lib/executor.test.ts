@@ -90,6 +90,35 @@ describe('executeRequest', () => {
     expect(error?.message).toBe('boom');
   });
 
+  it.each([
+    ['Chromium', 'Failed to fetch'],
+    ['Firefox', 'NetworkError when attempting to fetch resource.'],
+    ['Safari', 'Load failed'],
+  ])('hints at CORS when %s reports a failed fetch', async (_browser, message) => {
+    fetchMock.mockRejectedValue(new TypeError(message));
+
+    const { error } = await executeRequest({
+      method: 'GET',
+      url: 'https://example.com/blocked',
+      headers: {},
+    });
+
+    expect(error?.message).toBe(message);
+    expect(error?.hint).toMatch(/CORS/);
+    expect(error?.hint).toMatch(/Access-Control-Allow-Origin/);
+  });
+
+  it('gives no CORS hint for other failures', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to parse URL from nope'));
+    const parse = await executeRequest({ method: 'GET', url: 'nope', headers: {} });
+
+    fetchMock.mockRejectedValue(new Error('boom'));
+    const other = await executeRequest({ method: 'GET', url: 'https://x.y', headers: {} });
+
+    expect(parse.error?.hint).toBeUndefined();
+    expect(other.error?.hint).toBeUndefined();
+  });
+
   it('reports timeouts', async () => {
     fetchMock.mockImplementation(
       (_url: string, init: { signal: AbortSignal }) =>
