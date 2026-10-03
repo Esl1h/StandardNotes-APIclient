@@ -18,6 +18,8 @@ interface BlockDriverState {
   error?: HTTPError;
   /** Formatted (pretty printed) body; null when the body is not JSON */
   prettyBody: string | null;
+  /** Object URL of a binary response, for the preview and the download link */
+  binaryUrl: string | null;
 }
 
 /** Pretty prints JSON bodies for display; copy keeps the raw text */
@@ -33,6 +35,16 @@ function prettyPrintBody(body: string): string | null {
   }
 }
 
+/** File name for a downloaded response: the last path segment of the url */
+function downloadName(url: string): string {
+  try {
+    const segment = new URL(url).pathname.split('/').filter(Boolean).pop();
+    return segment ? decodeURIComponent(segment) : 'response';
+  } catch {
+    return 'response';
+  }
+}
+
 /**
  * One .http request block: summary line, Run button and inline response
  * (volatile; never written back to the note text); clicking the block
@@ -43,18 +55,32 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
 
   constructor(props: BlockProperties) {
     super(props);
-    this.state = { running: false, prettyBody: null };
+    this.state = { running: false, prettyBody: null, binaryUrl: null };
   }
 
   componentWillUnmount() {
     this.abortController?.abort();
+    this.releaseBinaryUrl();
+  }
+
+  releaseBinaryUrl() {
+    if (this.state.binaryUrl) {
+      URL.revokeObjectURL(this.state.binaryUrl);
+    }
   }
 
   run = () => {
     this.abortController?.abort();
     const controller = new AbortController();
     this.abortController = controller;
-    this.setState({ running: true, response: undefined, error: undefined, prettyBody: null });
+    this.releaseBinaryUrl();
+    this.setState({
+      running: true,
+      response: undefined,
+      error: undefined,
+      prettyBody: null,
+      binaryUrl: null,
+    });
     executeRequest(this.props.request, { signal: controller.signal }).then(
       (result) => {
         // A newer run owns the state; this stale result must not overwrite it.
@@ -66,6 +92,9 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
           response: result.response,
           error: result.error,
           prettyBody: result.response ? prettyPrintBody(result.response.body) : null,
+          binaryUrl: result.response?.binary
+            ? URL.createObjectURL(result.response.binary.blob)
+            : null,
         });
       }
     );
@@ -76,7 +105,14 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
   };
 
   closeResponse = () => {
-    this.setState({ running: false, response: undefined, error: undefined, prettyBody: null });
+    this.releaseBinaryUrl();
+    this.setState({
+      running: false,
+      response: undefined,
+      error: undefined,
+      prettyBody: null,
+      binaryUrl: null,
+    });
   };
 
   copyBody = () => {
@@ -88,7 +124,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
 
   render() {
     const { request, active, onSelect } = this.props;
-    const { running, response, error, prettyBody } = this.state;
+    const { running, response, error, prettyBody, binaryUrl } = this.state;
     const ignoredHeaders = findIgnoredHeaders(request.headers);
 
     return (
@@ -150,16 +186,18 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               >
                 {response.sizeBytes} B{response.sizeIsDecoded ? ' (decoded)' : ''}
               </span>
-              <button
-                className="copy-body"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  this.copyBody();
-                }}
-                title="Copy the raw response body (exactly as received)"
-              >
-                Copy body
-              </button>
+              {!response.binary && (
+                <button
+                  className="copy-body"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    this.copyBody();
+                  }}
+                  title="Copy the raw response body (exactly as received)"
+                >
+                  Copy body
+                </button>
+              )}
               <button
                 className="close"
                 onClick={(event) => {
@@ -183,7 +221,24 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
                 </div>
               ))}
             </details>
-            <pre className="response-body">{prettyBody ?? response.body}</pre>
+            {response.binary ? (
+              <div className="binary-response">
+                {binaryUrl && response.binary.contentType.startsWith('image/') && (
+                  <img src={binaryUrl} alt="Response preview" />
+                )}
+                {binaryUrl && (
+                  <a
+                    href={binaryUrl}
+                    download={downloadName(request.url)}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Download ({response.binary.contentType}, {response.sizeBytes} B)
+                  </a>
+                )}
+              </div>
+            ) : (
+              <pre className="response-body">{prettyBody ?? response.body}</pre>
+            )}
           </div>
         )}
         {error && (

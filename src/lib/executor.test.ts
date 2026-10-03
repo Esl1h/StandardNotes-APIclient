@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { executeRequest } from './executor';
+import { executeRequest, isBinaryContentType } from './executor';
 
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
@@ -23,6 +23,27 @@ function makeResponse(
     },
   };
 }
+
+describe('isBinaryContentType', () => {
+  it.each([
+    ['image/png', true],
+    ['IMAGE/PNG', true],
+    ['image/jpeg; charset=binary', true],
+    ['application/pdf', true],
+    ['application/octet-stream', true],
+    ['application/zip', true],
+    ['audio/mpeg', true],
+    ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', true],
+    ['application/json', false],
+    ['application/vnd.api+json', false],
+    ['text/plain; charset=utf-8', false],
+    ['text/html', false],
+    ['image/svg+xml', false],
+    ['', false],
+  ])('classifies %j as binary: %s', (contentType, expected) => {
+    expect(isBinaryContentType(contentType)).toBe(expected);
+  });
+});
 
 describe('executeRequest', () => {
   it('returns status, time, size, headers and body on success', async () => {
@@ -78,6 +99,27 @@ describe('executeRequest', () => {
       expect(response?.sizeIsDecoded).toBe(true);
     }
   );
+
+  it('keeps a binary response as a blob instead of decoding it as text', async () => {
+    const bytes = new Uint8Array([137, 80, 78, 71]).buffer;
+    const text = vi.fn();
+    fetchMock.mockResolvedValue({
+      status: 200,
+      text,
+      arrayBuffer: async () => bytes,
+      headers: { forEach: (callback: (value: string, name: string) => void) => callback('image/png', 'content-type') },
+    });
+
+    const { response } = await executeRequest({ method: 'GET', url: 'https://x.y/a.png', headers: {} });
+
+    expect(text).not.toHaveBeenCalled();
+    expect(response?.body).toBe('');
+    expect(response?.binary?.contentType).toBe('image/png');
+    expect(response?.binary?.blob.size).toBe(4);
+    expect(response?.binary?.blob.type).toBe('image/png');
+    expect(response?.sizeBytes).toBe(4);
+    expect(response?.sizeIsDecoded).toBe(true);
+  });
 
   it('sends method, headers and body through fetch', async () => {
     fetchMock.mockResolvedValue(makeResponse('created', 201));

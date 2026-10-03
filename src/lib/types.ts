@@ -8,7 +8,10 @@ interface HTTPResponse {
   /** True when sizeBytes measures the decoded body, not what went over the wire */
   sizeIsDecoded: boolean;
   headers: Record<string, string>;
+  /** Decoded text body; empty for binary responses, which are kept in `binary` */
   body: string;
+  /** Raw bytes of an image, PDF or other non-text response */
+  binary?: { blob: Blob; contentType: string };
 }
 
 interface HTTPError {
