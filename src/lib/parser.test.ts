@@ -449,4 +449,34 @@ describe('parseHttpFile', () => {
       expect(file.requests[1].headers).toEqual({ Accept: 'b' });
     });
   });
+
+  describe('multiline query strings', () => {
+    it('appends ? and & continuation lines to the url', () => {
+      const text = [
+        'GET https://x.y/search',
+        '  ?q=term',
+        '  &page=2',
+        'Accept: */*',
+        '',
+      ].join('\n');
+
+      const file = parseHttpFile(text);
+
+      expect(file.requests[0].url).toBe('https://x.y/search?q=term&page=2');
+      expect(file.requests[0].headers).toEqual({ Accept: '*/*' });
+    });
+
+    it('resolves variables inside continuation lines', () => {
+      const file = parseHttpFile('@q = abc\nGET https://x.y/s\n?q={{q}}\n');
+
+      expect(file.requests[0].url).toBe('https://x.y/s?q=abc');
+    });
+
+    it('leaves a ? line in the body untouched', () => {
+      const file = parseHttpFile('POST https://x.y\n\n?not=a-query\n');
+
+      expect(file.requests[0].url).toBe('https://x.y');
+      expect(file.requests[0].body).toBe('?not=a-query');
+    });
+  });
 });
