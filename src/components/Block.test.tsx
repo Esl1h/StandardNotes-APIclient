@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Block from './Block';
 import { executeRequest, type ExecutionResult } from '../lib/executor';
 import { type HttpRequest } from '../lib/parser';
@@ -17,9 +17,11 @@ const request: HttpRequest = {
 
 async function runBlock(result: ExecutionResult, overrides: Partial<HttpRequest> = {}) {
   executeMock.mockResolvedValue(result);
-  render(<Block request={{ ...request, ...overrides }} active={false} onSelect={() => {}} />);
+  const { container } = render(
+    <Block request={{ ...request, ...overrides }} active={false} onSelect={() => {}} />
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Run' }));
-  await screen.findByText(/./, { selector: '.response, .error' });
+  await waitFor(() => expect(container.querySelector('.response, .error')).not.toBeNull());
 }
 
 beforeEach(() => {
@@ -58,5 +60,23 @@ describe('Block', () => {
     );
 
     expect(screen.queryByText(/Browsers ignore/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [false, '5000 B'],
+    [true, '12 B (decoded)'],
+  ])('labels the size accordingly when decoded is %s', async (sizeIsDecoded, label) => {
+    await runBlock({
+      response: {
+        status: 200,
+        timeMs: 5,
+        sizeBytes: sizeIsDecoded ? 12 : 5000,
+        sizeIsDecoded,
+        headers: {},
+        body: '{"ok": true}',
+      },
+    });
+
+    expect(screen.getByText(label)).toBeInTheDocument();
   });
 });

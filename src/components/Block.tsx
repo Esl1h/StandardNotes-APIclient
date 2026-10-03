@@ -141,7 +141,15 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
                 {response.status}
               </span>
               <span>{response.timeMs} ms</span>
-              <span>{response.sizeBytes} B</span>
+              <span
+                title={
+                  response.sizeIsDecoded
+                    ? 'Size of the decoded body; the server did not report content-length'
+                    : 'Size reported by the content-length header'
+                }
+              >
+                {response.sizeBytes} B{response.sizeIsDecoded ? ' (decoded)' : ''}
+              </span>
               <button
                 className="copy-body"
                 onClick={(event) => {

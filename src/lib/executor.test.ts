@@ -57,6 +57,28 @@ describe('executeRequest', () => {
     expect(fetchMock.mock.calls[0][1].body).toBeUndefined();
   });
 
+  it('reports the content-length as the size when the server sends one', async () => {
+    fetchMock.mockResolvedValue(makeResponse('{"ok": true}', 200, [['content-length', '5000']]));
+
+    const { response } = await executeRequest({ method: 'GET', url: 'https://x.y', headers: {} });
+
+    expect(response?.sizeBytes).toBe(5000);
+    expect(response?.sizeIsDecoded).toBe(false);
+  });
+
+  it.each([[[]], [[['content-length', 'abc']]]])(
+    'falls back to the decoded size without a usable content-length (%j)',
+    async (headers) => {
+      fetchMock.mockResolvedValue(makeResponse('héllo', 200, headers as Array<[string, string]>));
+
+      const { response } = await executeRequest({ method: 'GET', url: 'https://x.y', headers: {} });
+
+      // Bytes of the decoded text, not characters.
+      expect(response?.sizeBytes).toBe(6);
+      expect(response?.sizeIsDecoded).toBe(true);
+    }
+  );
+
   it('sends method, headers and body through fetch', async () => {
     fetchMock.mockResolvedValue(makeResponse('created', 201));
 
