@@ -234,6 +234,11 @@
       }
     }
 
+    .warning {
+      margin-top: 8px;
+      color: var(--sn-stylekit-warning-color);
+    }
+
     .running {
       margin-top: 8px;
       color: var(--sn-stylekit-neutral-color);

@@ -35,4 +35,28 @@ describe('Block', () => {
     expect(screen.getByText(/Request failed \(network\): Failed to fetch/)).toBeInTheDocument();
     expect(screen.getByText('Probable CORS block')).toBeInTheDocument();
   });
+
+  it('warns about headers the browser will not send', () => {
+    render(
+      <Block
+        request={{ ...request, headers: { Host: 'example.com', Accept: '*/*', Cookie: 'a=1' } }}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    expect(screen.getByText(/Browsers ignore these headers: Host, Cookie/)).toBeInTheDocument();
+  });
+
+  it('shows no warning when every header can be sent', () => {
+    render(
+      <Block
+        request={{ ...request, headers: { Accept: '*/*' } }}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    expect(screen.queryByText(/Browsers ignore/)).not.toBeInTheDocument();
+  });
 });

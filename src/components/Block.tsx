@@ -1,6 +1,7 @@
 import React from 'react';
 import { type HttpRequest } from '../lib/parser';
 import { executeRequest } from '../lib/executor';
+import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
 import { type HTTPError, type HTTPResponse } from '../lib/types';
 
 interface BlockProperties {
@@ -88,6 +89,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
   render() {
     const { request, active, onSelect } = this.props;
     const { running, response, error, prettyBody } = this.state;
+    const ignoredHeaders = findIgnoredHeaders(request.headers);
 
     return (
       <div
@@ -124,6 +126,11 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
             {request.url}
           </span>
         </div>
+        {ignoredHeaders.length > 0 && (
+          <div className="warning">
+            Browsers ignore these headers: {ignoredHeaders.join(', ')}
+          </div>
+        )}
         {running && <div className="running">Running...</div>}
         {response && (
           <div className="response">
