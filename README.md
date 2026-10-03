@@ -21,22 +21,27 @@ end-to-end encryption, unlike typical web-based REST clients.
    urls, headers and bodies (variables can reference earlier variables)
 3. Run a single request block with its `Run` button; the response renders
    inline right below the block: status (color coded), elapsed time, body
-   size, headers (collapsible) and body
+   size, headers (collapsible) and body; images are previewed and other
+   binary responses can be downloaded
 4. Cancel running requests and close responses; responses are volatile and
    never written to the note (your note stays lightweight and the note text
    is never modified by a run)
 5. Your requests live in the note as plain text; the global Standard Notes
    search finds them by url, header name or endpoint title without opening
    the editor
-6. Works with the Standard Notes web and desktop apps; follows the theme
-   selected in the app
+6. Works with the Standard Notes web, desktop and mobile apps; follows the
+   theme selected in the app. On narrow screens the editor and the requests
+   stack vertically
 7. A new empty note shows an `Add sample` button that seeds the note with
    working example requests against httpbin.org and jsonplaceholder
+8. If the editor ever fails to render, the raw note text stays available
+   and editable in a plain text area, and edits are still saved
 
-Current state: v0.1 (parser, block rendering and direct execution).
-CORS-enabled endpoints run straight from the editor; for endpoints that do
-not send CORS headers, use a CORS-friendly endpoint or wait for the v0.3
-local proxy companion.
+Requests are sent straight from the editor, so only CORS-enabled endpoints
+answer; when a request fails with a blocked fetch, the block says it is
+probably CORS. For endpoints that do not send CORS headers, use a
+CORS-friendly endpoint; a local proxy companion is planned (see
+`docs/roadmap.md`).
 
 ### Try it online
 
@@ -172,13 +177,16 @@ The extension is hosted on GitHub Pages from the `gh-pages` branch, served
 at `https://esli.cafe/StandardNotes-APIclient/`. Releases are automated by
 the `Release` workflow:
 
-1. Bump the version in `package.json`; the `Release` workflow rewrites the
-   version on the distributed `ext.json` (zip + Pages), so the desktop app
-   updates automatically by comparing the version at `latest_url`.
-2. Commit, then push a tag:
+1. Bump the version in `package.json` and `public/ext.json` (also its
+   `download_url`) in one `chore(release)` commit. The `Release` workflow
+   rewrites the version on the distributed `ext.json` (zip + Pages), so the
+   desktop app updates automatically by comparing the version at
+   `latest_url`; keeping the committed copy in sync avoids a misleading one.
+2. On `main`, push a tag whose version matches `package.json` (the workflow
+   fails otherwise):
 
 ```
-git tag v0.1.0 && git push origin v0.1.0
+git tag -a vX.Y.Z -m vX.Y.Z && git push origin vX.Y.Z
 ```
 
 The workflow builds, runs the checks, attaches `extension.zip` to the
