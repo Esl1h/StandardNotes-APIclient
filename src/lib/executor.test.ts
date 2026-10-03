@@ -44,6 +44,19 @@ describe('executeRequest', () => {
     expect(response?.timeMs).toBeGreaterThanOrEqual(0);
   });
 
+  it.each(['GET', 'HEAD', 'get'])('never sends a body with %s', async (method) => {
+    fetchMock.mockResolvedValue(makeResponse('ok', 200));
+
+    await executeRequest({
+      method,
+      url: 'https://example.com/ok',
+      headers: {},
+      body: '',
+    });
+
+    expect(fetchMock.mock.calls[0][1].body).toBeUndefined();
+  });
+
   it('sends method, headers and body through fetch', async () => {
     fetchMock.mockResolvedValue(makeResponse('created', 201));
 

@@ -307,4 +307,24 @@ describe('parseHttpFile', () => {
       expect(file.requests[0].url).toBe('https://x.y');
     });
   });
+
+  describe('request body trimming', () => {
+    it('gives a GET followed by blank lines no body', () => {
+      const file = parseHttpFile('### A\nGET https://example.com\n\n\n### B\n');
+
+      expect(file.requests[0].body).toBeUndefined();
+    });
+
+    it('gives a trailing GET with blank lines no body', () => {
+      const file = parseHttpFile('GET https://example.com\n\n\n');
+
+      expect(file.requests[0].body).toBeUndefined();
+    });
+
+    it('drops trailing whitespace from a body but keeps inner blank lines', () => {
+      const file = parseHttpFile('POST https://example.com\n\nline1\n\nline2  \n\n \n### Next\n');
+
+      expect(file.requests[0].body).toBe('line1\n\nline2');
+    });
+  });
 });

@@ -172,6 +172,14 @@ function readActiveEnvironment(text: string): string | null {
   return match ? (match[1] ?? null) : null;
 }
 
+/** Sets the collected body without trailing blank space; an empty one stays unset. */
+function attachBody(request: HttpRequest, bodyLines: string[]): void {
+  const body = bodyLines.join('\n').replace(/\s+$/, '');
+  if (body) {
+    request.body = body;
+  }
+}
+
 /**
  * Parses raw note text into variables and request blocks. Never throws:
  * malformed lines are ignored so that the editor always renders something.
@@ -191,8 +199,8 @@ function parseHttpFile(text: string): HttpFile {
 
     const separatorMatch = line.match(/^###\s*(.*)$/);
     if (separatorMatch) {
-      if (currentRequest && bodyLines && bodyLines.length > 0) {
-        currentRequest.body = bodyLines.join('\n');
+      if (currentRequest && bodyLines) {
+        attachBody(currentRequest, bodyLines);
       }
       currentTitle = separatorMatch[1].trim();
       currentRequest = null;
@@ -266,8 +274,8 @@ function parseHttpFile(text: string): HttpFile {
     }
   }
 
-  if (currentRequest && bodyLines && bodyLines.length > 0) {
-    currentRequest.body = bodyLines.join('\n');
+  if (currentRequest && bodyLines) {
+    attachBody(currentRequest, bodyLines);
   }
 
   const activeEnvironment = readActiveEnvironment(text);

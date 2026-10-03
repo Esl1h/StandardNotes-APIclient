@@ -33,12 +33,15 @@ async function executeRequest(
   options.signal?.addEventListener('abort', onExternalAbort, { once: true });
 
   const startedAt = performance.now();
+  // fetch throws on a body with GET/HEAD; sending none beats failing the run.
+  const method = request.method.toUpperCase();
+  const body = method === 'GET' || method === 'HEAD' ? undefined : request.body;
 
   try {
     const response = await fetch(request.url, {
       method: request.method,
       headers: request.headers,
-      body: request.body,
+      body,
       signal: controller.signal,
     });
 
