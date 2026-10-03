@@ -24,11 +24,17 @@ vi.mock('./EditorInternal', () => ({
   },
 }));
 
+// React in development rethrows render errors to window, where jsdom prints
+// them as uncaught; mark them handled and mute the logging to keep output clean.
+const swallowWindowError = (event: ErrorEvent) => event.preventDefault();
+
 beforeEach(() => {
+  window.addEventListener('error', swallowWindowError);
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
+  window.removeEventListener('error', swallowWindowError);
   vi.restoreAllMocks();
 });
 
