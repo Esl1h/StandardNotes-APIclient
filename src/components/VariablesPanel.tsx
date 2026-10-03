@@ -18,10 +18,13 @@ function VariablesPanel(props: VariablesPanelInterface) {
     return null;
   }
 
+  // A variable can be redefined; the line tells the rows apart.
+  const rowKey = (variable: HttpVariable) =>
+    `${variable.env ? `${variable.name}.${variable.env}` : variable.name}:${variable.lineIndex}`;
+
   const copy = (variable: HttpVariable) => {
-    const fullKey = variable.env ? `${variable.name}.${variable.env}` : variable.name;
     navigator.clipboard?.writeText(variable.value);
-    setCopied(fullKey);
+    setCopied(rowKey(variable));
     setTimeout(() => setCopied(null), 1500);
   };
 
@@ -52,7 +55,7 @@ function VariablesPanel(props: VariablesPanelInterface) {
         {variables.map((variable) => {
           const fullKey = variable.env ? `${variable.name}.${variable.env}` : variable.name;
           return (
-            <li key={fullKey} className="variable-row">
+            <li key={rowKey(variable)} className="variable-row">
               <span className="variable-name">{fullKey}</span>
               <span className="variable-value">{variable.value}</span>
               <button
@@ -60,7 +63,7 @@ function VariablesPanel(props: VariablesPanelInterface) {
                 onClick={() => copy(variable)}
                 title={`Copy the value of ${fullKey}`}
               >
-                {copied === fullKey ? 'copied' : 'copy'}
+                {copied === rowKey(variable) ? 'copied' : 'copy'}
               </button>
             </li>
           );
