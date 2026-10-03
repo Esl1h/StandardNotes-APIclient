@@ -395,4 +395,31 @@ describe('parseHttpFile', () => {
       );
     });
   });
+
+  describe('// comments', () => {
+    it('ignores // comment lines outside request bodies', () => {
+      const text = [
+        '// top comment',
+        '### Block',
+        '// before the request line',
+        'GET https://example.com/a',
+        '// between request line and headers',
+        'X-Marker: 1',
+        '',
+        '{"body": true}',
+      ].join('\n');
+
+      const file = parseHttpFile(text);
+
+      expect(file.requests).toHaveLength(1);
+      expect(file.requests[0].headers).toEqual({ 'X-Marker': '1' });
+      expect(file.requests[0].body).toBe('{"body": true}');
+    });
+
+    it('keeps // lines that are part of a body', () => {
+      const file = parseHttpFile('POST https://example.com\n\nline1\n// still body\nline3');
+
+      expect(file.requests[0].body).toBe('line1\n// still body\nline3');
+    });
+  });
 });

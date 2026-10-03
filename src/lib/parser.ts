@@ -5,7 +5,7 @@
  * - Request line: METHOD URL [HTTP/x.y] (or URL alone, method defaults to GET)
  * - Headers: Name: value (only between request line and first blank line)
  * - Body: lines after the first blank line of the block, taken verbatim
- * - Comments (#) outside request bodies
+ * - Comments (# and //) outside request bodies
  * - Variables: @name = value (default scope) and @name.env = value, both
  *   may reference earlier variables
  * - Active environment declaration: @env = <environment>
@@ -238,7 +238,7 @@ function parseHttpFile(text: string): HttpFile {
     }
 
     // Comment lines are only meaningful outside a request body.
-    if (trimmed.startsWith('#')) {
+    if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
       continue;
     }
 

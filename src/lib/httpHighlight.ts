@@ -31,7 +31,7 @@ const httpHighlighter = StreamLanguage.define({
       if (stream.match(/^@[\w.-]+\s*=.*$/)) {
         return 'variableName';
       }
-      if (stream.match(/^#.*$/)) {
+      if (stream.match(/^#.*$/) || (state.method !== 'body' && stream.match(/^\/\/.*$/))) {
         return 'comment';
       }
       if (
