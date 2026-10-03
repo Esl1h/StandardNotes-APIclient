@@ -2,7 +2,8 @@
  * Parser for the .http/.rest file format used by VS Code REST Client and
  * kulala.nvim, extended with file-internal environments. Supports:
  * - Request blocks separated by ### Title lines
- * - Request line: METHOD URL [HTTP/x.y] (or URL alone, method defaults to GET)
+ * - Request line: METHOD URL [HTTP/x.y] (or URL alone, starting with http(s)://
+ *   or a {{variable}}; the method defaults to GET)
  * - Query string continuation: lines starting with ? or & right after the
  *   request line are appended to the url
  * - Headers: Name: value (only between request line and first blank line)
@@ -45,7 +46,7 @@ interface HttpFile {
 
 // The trailing HTTP version is part of the REST Client and kulala syntax.
 const REQUEST_LINE = /^([A-Za-z]+)\s+(\S+)(?:\s+HTTP\/[\d.]+)?$/;
-const URL_ONLY_LINE = /^(https?:\/\/\S+)$/;
+const URL_ONLY_LINE = /^(https?:\/\/\S+|\{\{[^}]*\}\}\S*)(?:\s+HTTP\/[\d.]+)?$/;
 const QUERY_CONTINUATION = /^[?&]/;
 const VARIABLE_LINE = /^@([A-Za-z0-9_-]+)(?:\.([A-Za-z0-9_-]+))?\s*=\s*(.*)$/;
 const HEADER_LINE = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/;
