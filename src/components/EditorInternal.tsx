@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Annotation, EditorState } from '@codemirror/state';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Annotation, EditorState, Transaction } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { defaultKeymap, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { minimalSetup } from 'codemirror';
@@ -13,8 +13,15 @@ import { DEFAULT_SPLIT_PCT, clampSplitPct, readSplitPct, writeSplitPct } from '.
 const External = Annotation.define<boolean>();
 
 function EditorInternal(props: EditorInternalInterface) {
-  const { rawText, httpFile, onTextChange, onInsertSample, onSetEnvironment, activeEnvironment } =
-    props;
+  const {
+    rawText,
+    httpFile,
+    onTextChange,
+    onInsertSample,
+    onSetEnvironment,
+    activeEnvironment,
+    historyEpoch = 0,
+  } = props;
   const viewRef = useRef<EditorView | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -22,14 +29,16 @@ function EditorInternal(props: EditorInternalInterface) {
   const [splitPct, setSplitPct] = useState<number>(() => readSplitPct());
   const [dragging, setDragging] = useState(false);
 
-  // Wire the CodeMirror view once; doc contents flow through props below.
-  // The activeIndex derives from the caret position so the block list can
-  // highlight (and scroll to) whichever block contains the caret.
+  // The listener lives as long as the view, so it reads the callback through a ref.
+  const onTextChangeRef = useRef(onTextChange);
   useEffect(() => {
-    const view = new EditorView({
-      parent: containerRef.current as HTMLElement,
-      state: EditorState.create({
-        doc: rawText,
+    onTextChangeRef.current = onTextChange;
+  });
+
+  const buildState = useCallback(
+    (doc: string) =>
+      EditorState.create({
+        doc,
         extensions: [
           minimalSetup,
           EditorView.lineWrapping,
@@ -40,7 +49,7 @@ function EditorInternal(props: EditorInternalInterface) {
               update.docChanged &&
               !update.transactions.some((transaction) => transaction.annotation(External))
             ) {
-              onTextChange(update.state.doc.toString());
+              onTextChangeRef.current(update.state.doc.toString());
             }
             if (update.selectionSet || update.docChanged) {
               const offset = update.state.selection.main.head;
@@ -50,26 +59,44 @@ function EditorInternal(props: EditorInternalInterface) {
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
         ],
       }),
+    []
+  );
+
+  // Wire the CodeMirror view once; doc contents flow through props below.
+  useEffect(() => {
+    const view = new EditorView({
+      parent: containerRef.current as HTMLElement,
+      state: buildState(rawText),
     });
     viewRef.current = view;
     return () => view.destroy();
-    // Rebuilding once per mount; the props object identity changes every parse.
+    // Rebuilding once per mount; later text changes arrive through rawText.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keep the editor contents identical to the parsed prop so both stay in sync.
+  const appliedEpoch = useRef(historyEpoch);
   useEffect(() => {
     const view = viewRef.current;
     if (!view) {
       return;
     }
+    if (appliedEpoch.current !== historyEpoch) {
+      // A different note: start from a fresh state so undo cannot cross notes.
+      appliedEpoch.current = historyEpoch;
+      view.setState(buildState(rawText));
+      setCaretLine(null);
+      return;
+    }
     if (view.state.doc.toString() !== rawText) {
+      // Same note updated from outside: neither a user edit to save nor
+      // something undo should revert.
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: rawText },
-        annotations: External.of(true),
+        annotations: [External.of(true), Transaction.addToHistory.of(false)],
       });
     }
-  }, [rawText]);
+  }, [rawText, historyEpoch, buildState]);
 
   // The block under the caret, derived so it follows the latest parse; the
   // view listener only knows the caret line.

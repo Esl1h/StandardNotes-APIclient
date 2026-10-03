@@ -13,6 +13,8 @@ const initialText = SAMPLE_HTTP_TEXT;
 interface EditorInterface {
   httpFile: HttpFile | null;
   rawText: string;
+  /** Bumped on every note switch; resets the editor's undo history */
+  historyEpoch: number;
 }
 
 export default class Editor extends React.Component<
@@ -27,7 +29,7 @@ export default class Editor extends React.Component<
     this.configureEditorKit();
     // Start with pristine text as a placeholder; once the note is ready,
     // setEditorRawText overwrites this with the actual note content.
-    this.state = { httpFile: parseHttpFile(initialText), rawText: initialText };
+    this.state = { httpFile: parseHttpFile(initialText), rawText: initialText, historyEpoch: 0 };
   }
 
   configureEditorKit = () => {
@@ -36,7 +38,10 @@ export default class Editor extends React.Component<
         const httpFile = parseHttpFile(text);
         this.setState({ rawText: text, httpFile });
       },
-      clearUndoHistory: () => {},
+      // EditorKit calls this after setEditorRawText when the note changed.
+      clearUndoHistory: () => {
+        this.setState(({ historyEpoch }) => ({ historyEpoch: historyEpoch + 1 }));
+      },
       handleRequestForContentHeight: () => undefined,
     };
 
@@ -81,6 +86,7 @@ export default class Editor extends React.Component<
         onInsertSample={this.handleInsertSample}
         onSetEnvironment={this.handleSetEnvironment}
         activeEnvironment={this.state.httpFile.environment}
+        historyEpoch={this.state.historyEpoch}
       />
     );
   }

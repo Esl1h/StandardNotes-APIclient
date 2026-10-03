@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { act, render } from '@testing-library/react';
 import { EditorView } from '@codemirror/view';
+import { undo } from '@codemirror/commands';
 import { type EditorKitDelegate } from '@standardnotes/editor-kit';
 import Editor from './Editor';
 
@@ -86,5 +87,33 @@ describe('Editor', () => {
     expect(blocks).toHaveLength(2);
     expect(blocks[0]).not.toHaveClass('active');
     expect(blocks[1]).toHaveClass('active');
+  });
+
+  it('does not let undo restore the text of the previous note', () => {
+    const { view, save, loadNote, type } = setup();
+    loadNote('GET https://note-a.example');
+    type('/typed-in-a');
+    save.mockClear();
+
+    loadNote('GET https://note-b.example');
+    act(() => {
+      undo(view);
+    });
+
+    expect(view.state.doc.toString()).toBe('GET https://note-b.example');
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('does not let undo revert a remote update of the same note', () => {
+    const { view, loadNote, syncRemote, type } = setup();
+    loadNote('GET https://a.example');
+    type('/typed');
+
+    syncRemote('GET https://a.example/from-another-device');
+    act(() => {
+      undo(view);
+    });
+
+    expect(view.state.doc.toString()).toBe('GET https://a.example/from-another-device');
   });
 });

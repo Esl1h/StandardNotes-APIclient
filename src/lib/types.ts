@@ -20,6 +20,8 @@ interface EditorInternalInterface {
   onInsertSample: () => void;
   onSetEnvironment: (environment: string | null) => void;
   activeEnvironment: string | null;
+  /** Bump when rawText is a different document, to reset the undo history */
+  historyEpoch?: number;
 }
 
 export type { HTTPResponse, HTTPError, EditorInternalInterface };
