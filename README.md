@@ -95,13 +95,23 @@ GET https://jsonplaceholder.typicode.com/posts/1
   list; requests resolve values from the active environment first and
   fall back to the unsuffixed ones. `{{name.prod}}` references an
   environment value explicitly.
-- `METHOD url` is the request line (a bare `https://...` line defaults to
-  `GET`)
+- `METHOD url [HTTP/1.1]` is the request line; the version suffix is
+  optional, and a bare `https://...` or `{{variable}}/path` line defaults
+  to `GET`
+- Lines starting with `?` or `&` right after the request line continue the
+  query string
 - `Name: value` lines between the request line and the first blank line are
-  headers
-- Everything after the first blank line of the block is the request body
-- `#` lines outside a body are comments
-- Responses are shown under each block at run time and are not saved
+  headers; a repeated header (in any letter case) is merged into one
+- Everything after the first blank line of the block is the request body,
+  without its trailing blank lines
+- `#` and `//` lines outside a body are comments
+- The variable list masks the value of names containing `token`, `secret`,
+  `key`, `password` or `auth` until you press `show`; `copy` always copies
+  the real value
+- Responses are shown under each block at run time and are not saved;
+  images are previewed and any binary response can be downloaded
+- Browsers never send headers such as `Host`, `Cookie` or `Origin`; the
+  block warns when a request declares one
 
 ## Privacy
 
