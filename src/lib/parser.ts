@@ -3,6 +3,8 @@
  * kulala.nvim, extended with file-internal environments. Supports:
  * - Request blocks separated by ### Title lines
  * - Request line: METHOD URL [HTTP/x.y] (or URL alone, method defaults to GET)
+ * - Query string continuation: lines starting with ? or & right after the
+ *   request line are appended to the url
  * - Headers: Name: value (only between request line and first blank line)
  * - Body: lines after the first blank line of the block, taken verbatim
  * - Comments (# and //) outside request bodies
@@ -44,6 +46,7 @@ interface HttpFile {
 // The trailing HTTP version is part of the REST Client and kulala syntax.
 const REQUEST_LINE = /^([A-Za-z]+)\s+(\S+)(?:\s+HTTP\/[\d.]+)?$/;
 const URL_ONLY_LINE = /^(https?:\/\/\S+)$/;
+const QUERY_CONTINUATION = /^[?&]/;
 const VARIABLE_LINE = /^@([A-Za-z0-9_-]+)(?:\.([A-Za-z0-9_-]+))?\s*=\s*(.*)$/;
 const HEADER_LINE = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/;
 const VARIABLE_REF = /\{\{\s*([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?)\s*\}\}/g;
@@ -287,6 +290,12 @@ function parseHttpFile(text: string): HttpFile {
         sawHeaderOrRequest = true;
         bodyLines = null;
       }
+      continue;
+    }
+
+    // The query string may continue on the lines right after the request line.
+    if (QUERY_CONTINUATION.test(trimmed) && Object.keys(currentRequest.headers).length === 0) {
+      currentRequest.url += trimmed;
       continue;
     }
 
