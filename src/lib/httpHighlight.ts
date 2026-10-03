@@ -64,6 +64,9 @@ const httpHighlighter = StreamLanguage.define({
       stream.skipToEnd();
       return null;
     }
+    if (stream.match(/^HTTP\/[\d.]+(?=\s|$)/)) {
+      return 'meta';
+    }
     if (stream.match(/\S+/)) {
       return state.method === 'headers' ? 'propertyName' : 'url';
     }
@@ -85,6 +88,7 @@ const httpHighlighter = StreamLanguage.define({
     variableName: t.variableName,
     string: t.string,
     comment: t.comment,
+    meta: t.meta,
   },
 });
 
@@ -96,6 +100,7 @@ const httpHighlightStyle = HighlightStyle.define([
   { tag: t.variableName, color: 'var(--sn-stylekit-neutral-color)' },
   { tag: t.string, color: 'var(--sn-stylekit-foreground-color)' },
   { tag: t.comment, color: 'var(--sn-stylekit-neutral-color)', fontStyle: 'italic' },
+  { tag: t.meta, color: 'var(--sn-stylekit-neutral-color)' },
 ]);
 
 /** Theme and highlighting extensions to compose into the editor.

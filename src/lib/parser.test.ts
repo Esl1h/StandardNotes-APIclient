@@ -281,4 +281,30 @@ describe('parseHttpFile', () => {
 
     expect(lookup('host')).toBe('default');
   });
+
+  describe('HTTP version suffix', () => {
+    it('accepts the version after the url', () => {
+      const file = parseHttpFile('GET https://x.y HTTP/1.1\nAccept: */*\n');
+
+      expect(file.requests).toHaveLength(1);
+      expect(file.requests[0]).toMatchObject({
+        method: 'GET',
+        url: 'https://x.y',
+        headers: { Accept: '*/*' },
+      });
+    });
+
+    it('accepts a short version and resolves variables in the url', () => {
+      const file = parseHttpFile('@host = https://h.example\nPOST {{host}}/a HTTP/2\n');
+
+      expect(file.requests).toHaveLength(1);
+      expect(file.requests[0]).toMatchObject({ method: 'POST', url: 'https://h.example/a' });
+    });
+
+    it('still accepts a request line without a version', () => {
+      const file = parseHttpFile('GET https://x.y');
+
+      expect(file.requests[0].url).toBe('https://x.y');
+    });
+  });
 });
