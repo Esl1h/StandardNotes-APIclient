@@ -40,6 +40,27 @@ test('opening a note does not save it, typing saves once', async ({ page }) => {
   expect(save.preview).toBe('1 request: POST Create');
 });
 
+test('a late echo of an earlier save does not undo newer typing', async ({ page }) => {
+  const plugin = await openHost(page, { text: JSON_NOTE });
+  await expect(plugin.locator('.block')).toHaveCount(1);
+  await plugin.locator('.cm-content').click();
+  await page.keyboard.press('ControlOrMeta+End');
+  await page.keyboard.type('A');
+  await expect.poll(async () => (await hostLogs(page, 'save-items')).length).toBe(1);
+  const [first] = await hostLogs(page, 'save-items');
+
+  await page.keyboard.type('B');
+  // The app streams the first save back once the second one is queued.
+  await page.evaluate((text) => window.sendNote('n1', text), first.text);
+  await page.waitForTimeout(800);
+  await expect(plugin.locator('.cm-line').last()).toHaveText('AB');
+
+  // Typing on continues from what the user had, not from the echo.
+  await page.keyboard.type('C');
+  const lastSaved = async () => (await hostLogs(page, 'save-items')).at(-1).text;
+  await expect.poll(lastSaved).toBe(`${JSON_NOTE}ABC`);
+});
+
 test('undo does not bring back the text of the previous note', async ({ page }) => {
   const plugin = await openHost(page, { text: 'GET https://note-a.example\n' });
   const content = plugin.locator('.cm-content');
