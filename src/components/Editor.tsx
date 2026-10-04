@@ -5,6 +5,7 @@ import { SAMPLE_HTTP_TEXT } from '../lib/sampleHttp';
 import { HttpFile, parseHttpFile, setActiveEnvironment } from '../lib/parser';
 import { httpPreview } from '../lib/preview';
 import { EchoGuard } from '../lib/echoGuard';
+import { setPreferenceStore } from '../lib/layout';
 import './Editor.css';
 import EditorInternal from './EditorInternal';
 import ErrorBoundary from './ErrorBoundary';
@@ -24,8 +25,11 @@ interface EditorInterface {
 }
 
 export default class Editor extends React.Component<Record<string, never>, EditorInterface> {
-  // Only the save entry point is used; tests stub this field.
-  editorKit: Pick<EditorKit, 'onEditorValueChanged'>;
+  // Only these entry points are used; tests stub this field.
+  editorKit: Pick<
+    EditorKit,
+    'onEditorValueChanged' | 'getComponentDataValueForKey' | 'setComponentDataValueForKey'
+  >;
 
   constructor(props: Record<string, never>) {
     super(props);
@@ -81,6 +85,13 @@ export default class Editor extends React.Component<Record<string, never>, Edito
       mode: 'plaintext',
       coallesedSaving: true,
       coallesedSavingDelay: 350,
+    });
+    // The split width lives in the component data, which the app keeps on
+    // the component item; localStorage alone is lost in sandboxed or
+    // per-session iframe origins.
+    setPreferenceStore({
+      get: (key) => this.editorKit.getComponentDataValueForKey(key),
+      set: (key, value) => this.editorKit.setComponentDataValueForKey(key, value),
     });
   };
 
