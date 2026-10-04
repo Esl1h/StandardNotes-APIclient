@@ -92,7 +92,10 @@ describe('Block', () => {
         sizeIsDecoded: true,
         headers: { 'content-type': contentType },
         body: '',
-        binary: { blob: new Blob([new Uint8Array([1, 2, 3, 4])], { type: contentType }), contentType },
+        binary: {
+          blob: new Blob([new Uint8Array([1, 2, 3, 4])], { type: contentType }),
+          contentType,
+        },
       },
     });
 
@@ -110,7 +113,10 @@ describe('Block', () => {
       await runBlock(binaryResponse('application/pdf'), { url: 'https://x.y/' });
 
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /download/i })).toHaveAttribute('download', 'response');
+      expect(screen.getByRole('link', { name: /download/i })).toHaveAttribute(
+        'download',
+        'response'
+      );
     });
 
     it('releases the object URL when the response is closed', async () => {

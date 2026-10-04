@@ -329,9 +329,4 @@ function setActiveEnvironment(text: string, environment: string | null): string 
 }
 
 export type { HttpFile, HttpRequest, HttpVariable };
-export {
-  parseHttpFile,
-  setActiveEnvironment,
-  readActiveEnvironment,
-  interpolate,
-};
+export { parseHttpFile, setActiveEnvironment, readActiveEnvironment, interpolate };

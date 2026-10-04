@@ -19,7 +19,10 @@ describe('findIgnoredHeaders', () => {
   });
 
   it('ignores the case of the name and keeps the declared spelling', () => {
-    expect(findIgnoredHeaders({ host: 'a', rEfErEr: 'b', Accept: 'c' })).toEqual(['host', 'rEfErEr']);
+    expect(findIgnoredHeaders({ host: 'a', rEfErEr: 'b', Accept: 'c' })).toEqual([
+      'host',
+      'rEfErEr',
+    ]);
   });
 
   it('flags the Proxy- and Sec- prefixes', () => {
