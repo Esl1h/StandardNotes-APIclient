@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import {
-  parseHttpFile,
-  setActiveEnvironment,
-  variableLookup,
-} from './parser';
+import { parseHttpFile, setActiveEnvironment } from './parser';
 
 describe('parseHttpFile', () => {
   it('parses a simple GET request', () => {
@@ -257,30 +253,33 @@ describe('parseHttpFile', () => {
     expect(setActiveEnvironment('A only', 'dev')).toBe('@env = dev\nA only');
   });
 
-  it('variableLookup checks environment scope before base', () => {
-    const lookup = variableLookup(
-      [
-        { name: 'host', value: 'default', lineIndex: 0 },
-        { name: 'host', env: 'staging', value: 'staging', lineIndex: 1 },
-      ],
-      'staging'
-    );
+  it('checks the environment scope before the default one', () => {
+    const text = [
+      '@host = default',
+      '@host.staging = staging',
+      '@env = staging',
+      '### A',
+      'GET https://{{host}}/a',
+      '',
+      '### B',
+      'GET https://{{host.staging}}/b',
+      '',
+      '### C',
+      'GET https://{{host.missing}}/c',
+      '',
+    ].join('\n');
 
-    expect(lookup('host')).toBe('staging');
-    expect(lookup('host.staging')).toBe('staging');
-    expect(lookup('host.missing')).toBeUndefined();
+    expect(parseHttpFile(text).requests.map((request) => request.url)).toEqual([
+      'https://staging/a',
+      'https://staging/b',
+      'https://{{host.missing}}/c',
+    ]);
   });
 
-  it('variableLookup falls back to base when active env lacks the key', () => {
-    const lookup = variableLookup(
-      [
-        { name: 'host', value: 'default', lineIndex: 0 },
-        { name: 'token', env: 'staging', value: 'stg', lineIndex: 1 },
-      ],
-      'staging'
-    );
+  it('falls back to the default scope when the active environment lacks the key', () => {
+    const text = '@host = default\n@token.staging = stg\n@env = staging\nGET https://{{host}}/\n';
 
-    expect(lookup('host')).toBe('default');
+    expect(parseHttpFile(text).requests[0].url).toBe('https://default/');
   });
 
   describe('HTTP version suffix', () => {
