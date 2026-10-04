@@ -2,6 +2,7 @@ import React from 'react';
 import { type HttpRequest } from '../lib/parser';
 import { executeRequest } from '../lib/executor';
 import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
+import { prettyPrintBody } from '../lib/prettyPrint';
 import { type HTTPError, type HTTPResponse } from '../lib/types';
 
 interface BlockProperties {
@@ -20,19 +21,6 @@ interface BlockDriverState {
   prettyBody: string | null;
   /** Object URL of a binary response, for the preview and the download link */
   binaryUrl: string | null;
-}
-
-/** Pretty prints JSON bodies for display; copy keeps the raw text */
-function prettyPrintBody(body: string): string | null {
-  const trimmed = body.trim();
-  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
-    return null;
-  }
-  try {
-    return JSON.stringify(JSON.parse(trimmed), null, 2);
-  } catch {
-    return null;
-  }
 }
 
 /** File name for a downloaded response: the last path segment of the url */
