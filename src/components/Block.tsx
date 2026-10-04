@@ -1,5 +1,5 @@
 import React from 'react';
-import { type HttpRequest } from '../lib/parser';
+import { type HttpRequest, unresolvedVariables } from '../lib/parser';
 import { executeRequest } from '../lib/executor';
 import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
 import { prettyPrintBody } from '../lib/prettyPrint';
@@ -120,6 +120,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     const { request, active, onSelect } = this.props;
     const { running, response, error, prettyBody, binaryUrl, showFullBody } = this.state;
     const ignoredHeaders = findIgnoredHeaders(request.headers);
+    const unresolved = unresolvedVariables(request);
     const bodyText = prettyBody ?? response?.body ?? '';
     const bodyCapped = bodyText.length > DISPLAY_LIMIT && !showFullBody;
 
@@ -156,6 +157,9 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
         </div>
         {ignoredHeaders.length > 0 && (
           <div className="warning">Browsers ignore these headers: {ignoredHeaders.join(', ')}</div>
+        )}
+        {unresolved.length > 0 && (
+          <div className="warning">Unresolved variables: {unresolved.join(', ')}</div>
         )}
         {running && <div className="running">Running...</div>}
         {response && (

@@ -164,6 +164,22 @@ function resolveVariables(
   return lookup;
 }
 
+/**
+ * Names of the {{variables}} still left in a request after interpolation
+ * (undeclared, or qualified with an environment that does not define them),
+ * in order of appearance, without repeats.
+ */
+function unresolvedVariables(request: HttpRequest): string[] {
+  const texts = [request.url, ...Object.values(request.headers), request.body ?? ''];
+  const names = new Set<string>();
+  for (const text of texts) {
+    for (const match of text.matchAll(VARIABLE_REF)) {
+      names.add(match[1]);
+    }
+  }
+  return [...names];
+}
+
 /** Reads the active environment from the @env declaration line */
 function readActiveEnvironment(text: string): string | null {
   const match = text.match(ENV_DECLARATION_LINE);
@@ -329,4 +345,10 @@ function setActiveEnvironment(text: string, environment: string | null): string 
 }
 
 export type { HttpFile, HttpRequest, HttpVariable };
-export { parseHttpFile, setActiveEnvironment, readActiveEnvironment, interpolate };
+export {
+  parseHttpFile,
+  setActiveEnvironment,
+  readActiveEnvironment,
+  interpolate,
+  unresolvedVariables,
+};

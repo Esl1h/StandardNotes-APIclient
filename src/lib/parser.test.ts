@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { parseHttpFile, setActiveEnvironment } from './parser';
+import { parseHttpFile, setActiveEnvironment, unresolvedVariables } from './parser';
 
 describe('parseHttpFile', () => {
   it('parses a simple GET request', () => {
@@ -357,6 +357,33 @@ describe('parseHttpFile', () => {
 
     it('lets the default scope reference an environment explicitly', () => {
       expect(urlOf('@h.dev = d\n@u = {{h.dev}}/p\nGET https://{{u}}\n')).toBe('https://d/p');
+    });
+  });
+
+  describe('unresolved variables', () => {
+    const unresolved = (text: string) => unresolvedVariables(parseHttpFile(text).requests[0]);
+
+    it('lists the names left in the url, headers and body, once each', () => {
+      const text = [
+        'POST https://{{host}}/{{id}}',
+        'X-Token: {{token}}',
+        '',
+        '{"id": "{{id}}"}',
+      ].join('\n');
+
+      expect(unresolved(text)).toEqual(['host', 'id', 'token']);
+    });
+
+    it('skips the variables that were declared', () => {
+      expect(unresolved('@host = h\nGET https://{{host}}/{{id}}\n')).toEqual(['id']);
+    });
+
+    it('lists a qualified reference to a missing environment as written', () => {
+      expect(unresolved('@host = h\nGET https://{{host.missing}}/\n')).toEqual(['host.missing']);
+    });
+
+    it('is empty when everything resolved', () => {
+      expect(unresolved('@host = h\nGET https://{{host}}/\n')).toEqual([]);
     });
   });
 
