@@ -6,6 +6,7 @@ import { setActiveEnvironment } from '../lib/parser';
 import { HttpFile } from '../lib/parser';
 import { parseHttpFile } from '../lib/parser';
 import { httpPreview } from '../lib/preview';
+import { EchoGuard } from '../lib/echoGuard';
 import './Editor.css';
 import EditorInternal from './EditorInternal';
 import ErrorBoundary from './ErrorBoundary';
@@ -47,6 +48,11 @@ export default class Editor extends React.Component<
 
   waitTimer?: ReturnType<typeof setTimeout>;
 
+  echoGuard = new EchoGuard();
+
+  /** The note EditorKit last streamed; setEditorRawText does not carry the id */
+  noteUuid?: string;
+
   componentDidMount() {
     this.waitTimer = setTimeout(() => this.setState({ waitTimedOut: true }), NOTE_WAIT_MS);
   }
@@ -57,7 +63,14 @@ export default class Editor extends React.Component<
 
   configureEditorKit = () => {
     const delegate: EditorKitDelegate = {
+      onNoteValueChange: async (note) => {
+        this.noteUuid = note.uuid;
+      },
       setEditorRawText: (text: string) => {
+        // A late echo of an earlier save would undo what was typed since.
+        if (this.echoGuard.isStaleEcho(this.noteUuid, text, this.state.rawText)) {
+          return;
+        }
         const httpFile = parseHttpFile(text);
         this.setState({ rawText: text, httpFile, noteReceived: true });
       },
@@ -83,6 +96,7 @@ export default class Editor extends React.Component<
   };
 
   saveNote = (text: string) => {
+    this.echoGuard.recordSave(text);
     /** This will work in an SN context, but breaks the standalone editor,
      * so we need to catch the error
      */
