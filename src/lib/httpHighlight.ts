@@ -1,4 +1,9 @@
-import { StreamLanguage, HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import {
+  StreamLanguage,
+  HighlightStyle,
+  syntaxHighlighting,
+  type StreamParser,
+} from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
 import { EditorView } from '@codemirror/view';
 
@@ -9,10 +14,14 @@ import { EditorView } from '@codemirror/view';
  * Cosmetic-only layer: the parser owns the semantics, mismatches here
  * never change what a block does.
  */
-const httpHighlighter = StreamLanguage.define({
+interface HttpState {
+  method: 'idle' | 'headers' | 'body';
+}
+
+const httpStreamParser: StreamParser<HttpState> = {
   name: 'http',
   startState() {
-    return { method: 'idle' as 'idle' | 'headers' | 'body' };
+    return { method: 'idle' };
   },
   token(stream, state) {
     // Leading whitespace: consume it so indented lines (JSON bodies) advance.
@@ -90,7 +99,9 @@ const httpHighlighter = StreamLanguage.define({
     comment: t.comment,
     meta: t.meta,
   },
-});
+};
+
+const httpHighlighter = StreamLanguage.define(httpStreamParser);
 
 const httpHighlightStyle = HighlightStyle.define([
   { tag: t.heading, color: 'var(--sn-stylekit-info-color)', fontWeight: '600' },
@@ -126,4 +137,4 @@ const httpEditorTheme = () =>
     },
   });
 
-export { httpHighlighter, httpHighlightExtensions, httpEditorTheme };
+export { httpStreamParser, httpHighlighter, httpHighlightExtensions, httpEditorTheme };
