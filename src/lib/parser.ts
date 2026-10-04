@@ -115,45 +115,54 @@ function interpolate(text: string, lookup: VariableLookup): string {
 }
 
 /**
- * Resolves variable values in declaration order so values can reference
- * variables defined earlier in the file, then writes the effective values
- * back into the variables array (for display) and returns the request
- * lookup honoring the active environment.
+ * Resolves variable values, so they can reference other variables in any
+ * order, then writes the effective values back into the variables array
+ * (for display) and returns the request lookup honoring the active
+ * environment.
  */
 function resolveVariables(
   variables: HttpVariable[],
   activeEnvironment: string | null
 ): VariableLookup {
-  const { base, byEnvironment } = buildScopes(variables);
+  const { base: rawBase, byEnvironment: rawByEnvironment } = buildScopes(variables);
 
-  const baseLookup: VariableLookup = (ref) => base.get(ref);
-  for (const [name, raw] of base.entries()) {
-    base.set(name, interpolate(raw, baseLookup));
-  }
-
-  for (const environmentMap of byEnvironment.values()) {
-    // `seen` holds the variables being expanded on the current path: meeting
-    // one again is a cycle, left as literal {{ref}} text instead of recursing.
-    const environmentLookup = (
-      ref: string,
-      seen: ReadonlySet<string> = new Set()
-    ): string | undefined => {
-      const name = ref.indexOf('.') > -1 ? ref.slice(0, ref.indexOf('.')) : ref;
-      if (seen.has(name)) {
-        return undefined;
-      }
-      const raw = environmentMap.get(name) ?? base.get(name);
-      if (raw === undefined) {
-        return undefined;
-      }
-      const path = new Set(seen).add(name);
-      return interpolate(raw, (inner) => environmentLookup(inner, path));
-    };
-    for (const [name, raw] of environmentMap.entries()) {
-      // Seeded with the variable itself so a self reference stays literal.
-      const path = new Set([name]);
-      environmentMap.set(name, interpolate(raw, (ref) => environmentLookup(ref, path)));
+  // Expands `ref` as seen from `context` (an environment, or null for the
+  // default scope). `seen` holds the scope-qualified names on the current
+  // path: meeting one again is a cycle, left as literal {{ref}} text.
+  const resolve = (
+    context: string | null,
+    ref: string,
+    seen: ReadonlySet<string>
+  ): string | undefined => {
+    const dot = ref.indexOf('.');
+    const name = dot > -1 ? ref.slice(0, dot) : ref;
+    const scope = dot > -1 ? ref.slice(dot + 1) : context;
+    const scoped = scope === null ? undefined : rawByEnvironment.get(scope)?.get(name);
+    // Only a bare name falls back to the default scope.
+    const raw = scoped ?? (dot > -1 ? undefined : rawBase.get(name));
+    if (raw === undefined) {
+      return undefined;
     }
+    const key = scoped === undefined ? name : `${name}.${scope}`;
+    if (seen.has(key)) {
+      return undefined;
+    }
+    const path = new Set(seen).add(key);
+    const nextContext = scoped === undefined ? null : scope;
+    return interpolate(raw, (inner) => resolve(nextContext, inner, path));
+  };
+
+  const base = new Map<string, string>();
+  for (const [name, raw] of rawBase) {
+    base.set(name, resolve(null, name, new Set()) ?? raw);
+  }
+  const byEnvironment = new Map<string, Map<string, string>>();
+  for (const [environment, rawMap] of rawByEnvironment) {
+    const resolved = new Map<string, string>();
+    for (const [name, raw] of rawMap) {
+      resolved.set(name, resolve(environment, `${name}.${environment}`, new Set()) ?? raw);
+    }
+    byEnvironment.set(environment, resolved);
   }
 
   // Write back the effective values so the sidebar shows resolved text.
