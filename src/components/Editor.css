@@ -282,13 +282,18 @@
       padding: 0 4px;
     }
 
-    .copy-body {
+    .copy-body,
+    .show-all {
       background: none;
       color: var(--sn-stylekit-neutral-color);
       cursor: pointer;
       border: 1px solid var(--sn-stylekit-border-color);
       border-radius: 4px;
       padding: 1px 8px;
+    }
+
+    .show-all {
+      margin-top: 6px;
     }
 
     .response-headers {
