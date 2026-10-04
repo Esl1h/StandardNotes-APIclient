@@ -1,6 +1,6 @@
 {
   "name": "standardnotes-apiclient",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "HTTP API client editor for Standard Notes, using .http syntax",
   "keywords": [
     "Standard Notes",
