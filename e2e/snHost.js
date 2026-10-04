@@ -42,7 +42,11 @@ const HOST_HTML = `<!doctype html>
       }
     }
     const saved = message.data && message.data.items && message.data.items[0];
-    window.logs.push({ action: message.action, text: saved ? saved.content.text : undefined });
+    window.logs.push({
+      action: message.action,
+      text: saved ? saved.content.text : undefined,
+      preview: saved ? saved.content.preview_plain : undefined,
+    });
     if (message.action === 'stream-context-item') {
       streamMessage = message;
       window.sendNote('n1', window.__initialNote);

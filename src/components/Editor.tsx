@@ -5,6 +5,7 @@ import { SAMPLE_HTTP_TEXT } from '../lib/sampleHttp';
 import { setActiveEnvironment } from '../lib/parser';
 import { HttpFile } from '../lib/parser';
 import { parseHttpFile } from '../lib/parser';
+import { httpPreview } from '../lib/preview';
 import './Editor.css';
 import EditorInternal from './EditorInternal';
 import ErrorBoundary from './ErrorBoundary';
@@ -65,6 +66,7 @@ export default class Editor extends React.Component<
         this.setState(({ historyEpoch }) => ({ historyEpoch: historyEpoch + 1 }));
       },
       handleRequestForContentHeight: () => undefined,
+      generateCustomPreview: (text: string) => ({ plain: httpPreview(text) }),
     };
 
     this.editorKit = new EditorKit(delegate, {
