@@ -17,6 +17,9 @@ const HOST_HTML = `<!doctype html>
   const frame = document.getElementById('f');
   let streamMessage = null;
   window.logs = [];
+  // Like the app, component data persists on the component item and comes
+  // back with the next registration.
+  window.componentData = window.__componentData || {};
 
   const reply = (original, data) =>
     frame.contentWindow.postMessage({ action: 'reply', original, data }, '*');
@@ -54,6 +57,9 @@ const HOST_HTML = `<!doctype html>
     if (message.action === 'save-items') {
       reply(message, {});
     }
+    if (message.action === 'set-component-data') {
+      window.componentData = message.data.componentData;
+    }
   });
 
   frame.onload = () => {
@@ -61,7 +67,7 @@ const HOST_HTML = `<!doctype html>
       {
         action: 'component-registered',
         sessionKey: 'k',
-        componentData: {},
+        componentData: window.componentData,
         data: { uuid: 'c1', environment: 'web', platform: 'web' },
       },
       '*'
@@ -77,15 +83,21 @@ const HOST_HTML = `<!doctype html>
  * `throttle` slows the CPU down (CDP rate) to mimic a mobile WebView.
  * `opaqueOrigin` serves the host with origin "null" and no referrer, like
  * the mobile app, whose web UI runs from a local file inside a WebView.
+ * `componentData` is what the app stored for the component, as sent on
+ * registration; `window.componentData` holds the latest saved value.
  */
-async function openHost(page, { text, throttle = 1, opaqueOrigin = false }) {
+async function openHost(page, { text, throttle = 1, opaqueOrigin = false, componentData = {} }) {
   if (throttle > 1) {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
   }
-  await page.addInitScript((note) => {
-    window.__initialNote = note;
-  }, text);
+  await page.addInitScript(
+    ({ note, data }) => {
+      window.__initialNote = note;
+      window.__componentData = data;
+    },
+    { note: text, data: componentData }
+  );
   const headers = opaqueOrigin
     ? {
         // Opaque origin for the host; the plugin iframe inherits the sandbox,
