@@ -37,16 +37,18 @@ const httpStreamParser: StreamParser<HttpState> = {
         state.method = 'idle';
         return 'heading';
       }
-      if (stream.match(/^@[\w.-]+\s*=.*$/)) {
-        return 'variableName';
+      // Inside a body these lines are plain text to the parser.
+      if (state.method !== 'body') {
+        if (stream.match(/^@[\w.-]+\s*=.*$/)) {
+          return 'variableName';
+        }
+        if (stream.match(/^(?:#|\/\/).*$/)) {
+          return 'comment';
+        }
       }
-      if (stream.match(/^#.*$/) || (state.method !== 'body' && stream.match(/^\/\/.*$/))) {
-        return 'comment';
-      }
-      if (
-        state.method !== 'body' &&
-        stream.match(/^(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE)\b/)
-      ) {
+      // Same shape as the parser's request line, and only before the first
+      // request of the block: a later one without `###` is body text.
+      if (state.method === 'idle' && stream.match(/^[A-Za-z]+(?=\s+\S+(?:\s+HTTP\/[\d.]+)?\s*$)/)) {
         state.method = 'headers';
         return 'keyword';
       }
