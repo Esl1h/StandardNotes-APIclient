@@ -23,10 +23,7 @@ interface EditorInterface {
   waitTimedOut: boolean;
 }
 
-export default class Editor extends React.Component<
-  Record<string, never>,
-  EditorInterface
-> {
+export default class Editor extends React.Component<Record<string, never>, EditorInterface> {
   // Only the save entry point is used; tests stub this field.
   editorKit: Pick<EditorKit, 'onEditorValueChanged'>;
 

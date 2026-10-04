@@ -84,7 +84,8 @@ async function executeRequest(
     // content-length is the size on the wire; the decoded text is only the
     // fallback, and says so, since compression makes the two differ.
     const contentLength = Number(headers['content-length']);
-    const hasContentLength = headers['content-length'] !== undefined && Number.isFinite(contentLength);
+    const hasContentLength =
+      headers['content-length'] !== undefined && Number.isFinite(contentLength);
 
     return {
       response: {

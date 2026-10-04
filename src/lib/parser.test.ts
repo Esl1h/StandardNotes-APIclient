@@ -176,7 +176,9 @@ describe('parseHttpFile', () => {
   });
 
   it('reads the active environment from the @env declaration', () => {
-    const file = parseHttpFile('@env = staging\n@host.staging = https://x\nGET https://example.com');
+    const file = parseHttpFile(
+      '@env = staging\n@host.staging = https://x\nGET https://example.com'
+    );
 
     expect(file.environment).toBe('staging');
   });
@@ -360,7 +362,10 @@ describe('parseHttpFile', () => {
 
   describe('cyclic variables', () => {
     it.each([
-      ['self reference in an environment', '@env = dev\n@a.dev = {{a}}x\nGET https://e.com/{{a}}\n'],
+      [
+        'self reference in an environment',
+        '@env = dev\n@a.dev = {{a}}x\nGET https://e.com/{{a}}\n',
+      ],
       [
         'indirect cycle in an environment',
         '@env = dev\n@a.dev = {{b}}\n@b.dev = {{a}}\nGET https://e.com/{{a}}\n',
@@ -385,7 +390,8 @@ describe('parseHttpFile', () => {
     });
 
     it('still resolves variables that merely share a dependency', () => {
-      const text = '@env = dev\n@base = b\n@x.dev = {{base}}1\n@y.dev = {{base}}2\nGET https://e.com/{{x}}{{y}}\n';
+      const text =
+        '@env = dev\n@base = b\n@x.dev = {{base}}1\n@y.dev = {{base}}2\nGET https://e.com/{{x}}{{y}}\n';
 
       expect(parseHttpFile(text).requests[0].url).toBe('https://e.com/b1b2');
     });
@@ -472,7 +478,9 @@ describe('parseHttpFile', () => {
     });
 
     it('does not mix headers across requests', () => {
-      const file = parseHttpFile('GET https://x.y\nAccept: a\n\n### Two\nGET https://x.y\nAccept: b\n');
+      const file = parseHttpFile(
+        'GET https://x.y\nAccept: a\n\n### Two\nGET https://x.y\nAccept: b\n'
+      );
 
       expect(file.requests[0].headers).toEqual({ Accept: 'a' });
       expect(file.requests[1].headers).toEqual({ Accept: 'b' });
@@ -481,13 +489,9 @@ describe('parseHttpFile', () => {
 
   describe('multiline query strings', () => {
     it('appends ? and & continuation lines to the url', () => {
-      const text = [
-        'GET https://x.y/search',
-        '  ?q=term',
-        '  &page=2',
-        'Accept: */*',
-        '',
-      ].join('\n');
+      const text = ['GET https://x.y/search', '  ?q=term', '  &page=2', 'Accept: */*', ''].join(
+        '\n'
+      );
 
       const file = parseHttpFile(text);
 
@@ -511,7 +515,9 @@ describe('parseHttpFile', () => {
 
   describe('url-only lines starting with a variable', () => {
     it('accepts {{baseUrl}}/path without a method, defaulting to GET', () => {
-      const file = parseHttpFile('@baseUrl = https://api.example.com\n\n### Ping\n{{baseUrl}}/ping\n');
+      const file = parseHttpFile(
+        '@baseUrl = https://api.example.com\n\n### Ping\n{{baseUrl}}/ping\n'
+      );
 
       expect(file.requests).toHaveLength(1);
       expect(file.requests[0]).toMatchObject({

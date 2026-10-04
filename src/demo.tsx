@@ -54,10 +54,9 @@ function DemoEditor() {
       <header className="demo-header">
         <h1>StandardNotes API Client</h1>
         <p>
-          Live sandbox of the plugin. Here it runs outside Standard Notes and
-          keeps the note text in your browser&apos;s localStorage; inside the app
-          the same editor saves the text (E2EE) on the note itself. Only CORS
-          enabled endpoints answer requests made from this page, like
+          Live sandbox of the plugin. Here it runs outside Standard Notes and keeps the note text in
+          your browser&apos;s localStorage; inside the app the same editor saves the text (E2EE) on
+          the note itself. Only CORS enabled endpoints answer requests made from this page, like
           httpbin.org and jsonplaceholder.
         </p>
         <label className="template-row">

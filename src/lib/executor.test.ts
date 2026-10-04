@@ -8,11 +8,7 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
-function makeResponse(
-  body: string,
-  status: number,
-  headers: Array<[string, string]> = []
-) {
+function makeResponse(body: string, status: number, headers: Array<[string, string]> = []) {
   const headerMap = new Map(headers);
   return {
     status,
@@ -107,10 +103,17 @@ describe('executeRequest', () => {
       status: 200,
       text,
       arrayBuffer: async () => bytes,
-      headers: { forEach: (callback: (value: string, name: string) => void) => callback('image/png', 'content-type') },
+      headers: {
+        forEach: (callback: (value: string, name: string) => void) =>
+          callback('image/png', 'content-type'),
+      },
     });
 
-    const { response } = await executeRequest({ method: 'GET', url: 'https://x.y/a.png', headers: {} });
+    const { response } = await executeRequest({
+      method: 'GET',
+      url: 'https://x.y/a.png',
+      headers: {},
+    });
 
     expect(text).not.toHaveBeenCalled();
     expect(response?.body).toBe('');
@@ -187,9 +190,7 @@ describe('executeRequest', () => {
     fetchMock.mockImplementation(
       (_url: string, init: { signal: AbortSignal }) =>
         new Promise((_resolve, reject) => {
-          init.signal.addEventListener('abort', () =>
-            reject(new Error('AbortError'))
-          );
+          init.signal.addEventListener('abort', () => reject(new Error('AbortError')));
         })
     );
 
@@ -205,9 +206,7 @@ describe('executeRequest', () => {
     fetchMock.mockImplementation(
       (_url: string, init: { signal: AbortSignal }) =>
         new Promise((_resolve, reject) => {
-          init.signal.addEventListener('abort', () =>
-            reject(new Error('AbortError'))
-          );
+          init.signal.addEventListener('abort', () => reject(new Error('AbortError')));
         })
     );
 

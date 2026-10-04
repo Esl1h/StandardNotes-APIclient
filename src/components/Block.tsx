@@ -69,23 +69,21 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
       prettyBody: null,
       binaryUrl: null,
     });
-    executeRequest(this.props.request, { signal: controller.signal }).then(
-      (result) => {
-        // A newer run owns the state; this stale result must not overwrite it.
-        if (this.abortController !== controller) {
-          return;
-        }
-        this.setState({
-          running: false,
-          response: result.response,
-          error: result.error,
-          prettyBody: result.response ? prettyPrintBody(result.response.body) : null,
-          binaryUrl: result.response?.binary
-            ? URL.createObjectURL(result.response.binary.blob)
-            : null,
-        });
+    executeRequest(this.props.request, { signal: controller.signal }).then((result) => {
+      // A newer run owns the state; this stale result must not overwrite it.
+      if (this.abortController !== controller) {
+        return;
       }
-    );
+      this.setState({
+        running: false,
+        response: result.response,
+        error: result.error,
+        prettyBody: result.response ? prettyPrintBody(result.response.body) : null,
+        binaryUrl: result.response?.binary
+          ? URL.createObjectURL(result.response.binary.blob)
+          : null,
+      });
+    });
   };
 
   cancel = () => {
@@ -116,11 +114,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     const ignoredHeaders = findIgnoredHeaders(request.headers);
 
     return (
-      <div
-        className={active ? 'block active' : 'block'}
-        onClick={onSelect}
-        role="presentation"
-      >
+      <div className={active ? 'block active' : 'block'} onClick={onSelect} role="presentation">
         <div className="block-summary">
           {running ? (
             <button
@@ -151,17 +145,13 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
           </span>
         </div>
         {ignoredHeaders.length > 0 && (
-          <div className="warning">
-            Browsers ignore these headers: {ignoredHeaders.join(', ')}
-          </div>
+          <div className="warning">Browsers ignore these headers: {ignoredHeaders.join(', ')}</div>
         )}
         {running && <div className="running">Running...</div>}
         {response && (
           <div className="response">
             <div className="response-meta">
-              <span
-                className={response.status < 400 ? 'status ok' : 'status err'}
-              >
+              <span className={response.status < 400 ? 'status ok' : 'status err'}>
                 {response.status}
               </span>
               <span>{response.timeMs} ms</span>
@@ -198,9 +188,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               </button>
             </div>
             <details className="response-headers">
-              <summary>
-                Headers ({Object.keys(response.headers).length})
-              </summary>
+              <summary>Headers ({Object.keys(response.headers).length})</summary>
               {Object.entries(response.headers).map(([name, value]) => (
                 <div className="header-row" key={name}>
                   <span className="header-name">{name}</span>
