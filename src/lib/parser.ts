@@ -81,33 +81,6 @@ function buildScopes(variables: HttpVariable[]): VariableScopes {
   return { base, byEnvironment };
 }
 
-/**
- * Builds a resolver for the {{name}} / {{name.env}} references against the
- * parsed variables. Bare names check the active environment map first and
- * fall back to the default scope; qualified names check only that scope.
- */
-function variableLookup(
-  variables: HttpVariable[],
-  activeEnvironment: string | null
-): VariableLookup {
-  const { base, byEnvironment } = buildScopes(variables);
-
-  return (ref: string) => {
-    const dot = ref.indexOf('.');
-    if (dot > -1) {
-      const scope = ref.slice(dot + 1);
-      return byEnvironment.get(scope)?.get(ref.slice(0, dot));
-    }
-    if (activeEnvironment) {
-      const environmentValue = byEnvironment.get(activeEnvironment)?.get(ref);
-      if (environmentValue !== undefined) {
-        return environmentValue;
-      }
-    }
-    return base.get(ref);
-  };
-}
-
 function interpolate(text: string, lookup: VariableLookup): string {
   return text.replace(VARIABLE_REF, (match, ref: string) => {
     return lookup(ref) ?? match;
@@ -360,6 +333,5 @@ export {
   parseHttpFile,
   setActiveEnvironment,
   readActiveEnvironment,
-  variableLookup,
   interpolate,
 };
