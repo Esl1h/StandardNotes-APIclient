@@ -83,6 +83,65 @@ describe('Block', () => {
     expect(screen.getByText(label)).toBeInTheDocument();
   });
 
+  describe('large responses', () => {
+    const textResponse = (body: string): ExecutionResult => ({
+      response: {
+        status: 200,
+        timeMs: 5,
+        sizeBytes: body.length,
+        sizeIsDecoded: false,
+        headers: {},
+        body,
+      },
+    });
+    const shown = () => document.querySelector('.response-body')!.textContent!;
+
+    it('caps the displayed body and offers the rest', async () => {
+      await runBlock(textResponse('x'.repeat(300_000)));
+
+      expect(shown().length).toBeLessThanOrEqual(200_000);
+      expect(screen.getByRole('button', { name: /show all \(293 KB\)/i })).toBeInTheDocument();
+    });
+
+    it('shows the whole body after Show all', async () => {
+      await runBlock(textResponse('x'.repeat(300_000)));
+
+      fireEvent.click(screen.getByRole('button', { name: /show all/i }));
+
+      expect(shown()).toHaveLength(300_000);
+      expect(screen.queryByRole('button', { name: /show all/i })).not.toBeInTheDocument();
+    });
+
+    it('copies the whole body, not the displayed part', async () => {
+      const writeText = vi.fn();
+      Object.assign(navigator, { clipboard: { writeText } });
+      const body = 'x'.repeat(300_000);
+      await runBlock(textResponse(body));
+
+      fireEvent.click(screen.getByRole('button', { name: /copy body/i }));
+
+      expect(writeText).toHaveBeenCalledWith(body);
+    });
+
+    it('does not cap a body at the limit', async () => {
+      await runBlock(textResponse('x'.repeat(200_000)));
+
+      expect(shown()).toHaveLength(200_000);
+      expect(screen.queryByRole('button', { name: /show all/i })).not.toBeInTheDocument();
+    });
+
+    it('caps again on the next run', async () => {
+      await runBlock(textResponse('x'.repeat(300_000)));
+      fireEvent.click(screen.getByRole('button', { name: /show all/i }));
+      executeMock.mockResolvedValue(textResponse('y'.repeat(300_000)));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+      await waitFor(() => expect(shown().startsWith('y')).toBe(true));
+      expect(shown().length).toBeLessThanOrEqual(200_000);
+    });
+  });
+
   describe('binary responses', () => {
     const binaryResponse = (contentType: string): ExecutionResult => ({
       response: {

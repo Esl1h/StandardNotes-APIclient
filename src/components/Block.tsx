@@ -5,6 +5,10 @@ import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
 import { prettyPrintBody } from '../lib/prettyPrint';
 import { type HTTPError, type HTTPResponse } from '../lib/types';
 
+/** Characters of a response body rendered before "Show all"; the DOM of a
+ * multi-megabyte <pre> freezes a WebView. */
+const DISPLAY_LIMIT = 200_000;
+
 interface BlockProperties {
   request: HttpRequest;
   /** True while the caret inside the source sits on this request */
@@ -21,6 +25,8 @@ interface BlockDriverState {
   prettyBody: string | null;
   /** Object URL of a binary response, for the preview and the download link */
   binaryUrl: string | null;
+  /** True once the user asked for a body longer than DISPLAY_LIMIT in full */
+  showFullBody: boolean;
 }
 
 /** File name for a downloaded response: the last path segment of the url */
@@ -43,7 +49,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
 
   constructor(props: BlockProperties) {
     super(props);
-    this.state = { running: false, prettyBody: null, binaryUrl: null };
+    this.state = { running: false, prettyBody: null, binaryUrl: null, showFullBody: false };
   }
 
   componentWillUnmount() {
@@ -68,6 +74,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
       error: undefined,
       prettyBody: null,
       binaryUrl: null,
+      showFullBody: false,
     });
     executeRequest(this.props.request, { signal: controller.signal }).then((result) => {
       // A newer run owns the state; this stale result must not overwrite it.
@@ -98,6 +105,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
       error: undefined,
       prettyBody: null,
       binaryUrl: null,
+      showFullBody: false,
     });
   };
 
@@ -110,8 +118,10 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
 
   render() {
     const { request, active, onSelect } = this.props;
-    const { running, response, error, prettyBody, binaryUrl } = this.state;
+    const { running, response, error, prettyBody, binaryUrl, showFullBody } = this.state;
     const ignoredHeaders = findIgnoredHeaders(request.headers);
+    const bodyText = prettyBody ?? response?.body ?? '';
+    const bodyCapped = bodyText.length > DISPLAY_LIMIT && !showFullBody;
 
     return (
       <div className={active ? 'block active' : 'block'} onClick={onSelect} role="presentation">
@@ -213,7 +223,23 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
                 )}
               </div>
             ) : (
-              <pre className="response-body">{prettyBody ?? response.body}</pre>
+              <>
+                <pre className="response-body">
+                  {bodyCapped ? bodyText.slice(0, DISPLAY_LIMIT) : bodyText}
+                </pre>
+                {bodyCapped && (
+                  <button
+                    className="show-all"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      this.setState({ showFullBody: true });
+                    }}
+                    title="Render the rest of the body; large ones can slow the editor down"
+                  >
+                    Show all ({Math.round(bodyText.length / 1024)} KB)
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
