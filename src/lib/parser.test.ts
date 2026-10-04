@@ -329,6 +329,36 @@ describe('parseHttpFile', () => {
     });
   });
 
+  describe('variable resolution', () => {
+    const urlOf = (text: string) => parseHttpFile(text).requests[0].url;
+
+    it('resolves a qualified reference in its own environment', () => {
+      const text = [
+        '@env = dev',
+        '@host.dev = dev.x',
+        '@host.prod = prod.x',
+        '@url.dev = {{host.prod}}/a',
+        'GET https://{{url}}',
+      ].join('\n');
+
+      expect(urlOf(text)).toBe('https://prod.x/a');
+    });
+
+    it('resolves a chain declared in reverse order', () => {
+      expect(urlOf('@a = {{b}}\n@b = {{c}}\n@c = 1\nGET https://e/{{a}}\n')).toBe('https://e/1');
+    });
+
+    it('leaves a cycle between environments literal without throwing', () => {
+      const text = '@env = dev\n@a.dev = {{a.prod}}\n@a.prod = {{a.dev}}\nGET https://e/{{a}}\n';
+
+      expect(urlOf(text)).toBe('https://e/{{a.dev}}');
+    });
+
+    it('lets the default scope reference an environment explicitly', () => {
+      expect(urlOf('@h.dev = d\n@u = {{h.dev}}/p\nGET https://{{u}}\n')).toBe('https://d/p');
+    });
+  });
+
   describe('cyclic variables', () => {
     it.each([
       ['self reference in an environment', '@env = dev\n@a.dev = {{a}}x\nGET https://e.com/{{a}}\n'],
