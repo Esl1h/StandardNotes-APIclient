@@ -37,6 +37,7 @@ test('opening a note does not save it, typing saves once', async ({ page }) => {
   await expect.poll(async () => (await hostLogs(page, 'save-items')).length).toBe(1);
   const [save] = await hostLogs(page, 'save-items');
   expect(save.text).toBe(`${JSON_NOTE}#`);
+  expect(save.preview).toBe('1 request: POST Create');
 });
 
 test('undo does not bring back the text of the previous note', async ({ page }) => {
