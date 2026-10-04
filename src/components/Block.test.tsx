@@ -53,6 +53,24 @@ describe('Block', () => {
     expect(screen.getByText(/Browsers ignore these headers: Host, Cookie/)).toBeInTheDocument();
   });
 
+  it('warns about variables that were not declared', () => {
+    render(
+      <Block
+        request={{ ...request, url: 'https://{{host}}/a', headers: { 'X-Token': '{{token}}' } }}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    expect(screen.getByText('Unresolved variables: host, token')).toBeInTheDocument();
+  });
+
+  it('shows no variable warning when nothing is left to resolve', () => {
+    render(<Block request={request} active={false} onSelect={() => {}} />);
+
+    expect(screen.queryByText(/Unresolved variables/)).not.toBeInTheDocument();
+  });
+
   it('shows no warning when every header can be sent', () => {
     render(
       <Block
