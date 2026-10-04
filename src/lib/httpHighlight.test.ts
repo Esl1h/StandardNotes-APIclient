@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { EditorState } from '@codemirror/state';
-import { ensureSyntaxTree } from '@codemirror/language';
-import { httpHighlightExtensions } from './httpHighlight';
+import { ensureSyntaxTree, StringStream } from '@codemirror/language';
+import { httpHighlightExtensions, httpStreamParser } from './httpHighlight';
 
 /** Forces a full parse; StreamLanguage throws if a token call does not advance. */
 function parseFully(text: string) {
@@ -95,5 +95,49 @@ describe('httpHighlighter', () => {
         expect(() => parseFully(pieces.join('\n'))).not.toThrow();
       })
     );
+  });
+});
+
+/** Runs the stream parser line by line, as the editor does. */
+function tokens(text: string): Array<[string, string | null]> {
+  const state = httpStreamParser.startState!(2);
+  const out: Array<[string, string | null]> = [];
+  for (const line of text.split('\n')) {
+    if (line === '') {
+      httpStreamParser.blankLine?.(state, 2);
+      continue;
+    }
+    const stream = new StringStream(line, 2, 2);
+    while (!stream.eol()) {
+      const style = httpStreamParser.token(stream, state);
+      out.push([stream.current(), style]);
+      stream.start = stream.pos;
+    }
+  }
+  return out;
+}
+
+describe('httpStreamParser follows the parser', () => {
+  it.each([
+    ['a lowercase method', 'get https://x.y', 'get'],
+    ['a method outside the usual list', 'PROPFIND https://x.y', 'PROPFIND'],
+  ])('colors %s as a keyword', (_name, text, method) => {
+    expect(tokens(text)).toContainEqual([method, 'keyword']);
+  });
+
+  it('does not color a comment line inside a body', () => {
+    const styles = tokens('POST https://x\n\n# not a comment').map(([, style]) => style);
+
+    expect(styles).not.toContain('comment');
+  });
+
+  it('does not color a variable line inside a body', () => {
+    const styles = tokens('POST https://x\n\n@a = 1').map(([, style]) => style);
+
+    expect(styles).not.toContain('variableName');
+  });
+
+  it('colors a comment before the first request', () => {
+    expect(tokens('# real comment\nGET https://x')[0]).toEqual(['# real comment', 'comment']);
   });
 });
