@@ -126,6 +126,14 @@ function EditorInternal(props: EditorInternalInterface) {
     });
   }, [httpFile.requests]);
 
+  // Labels of the requests in this file, so a {{label.response.*}} reference
+  // is not warned about as an unresolved variable.
+  const requestNames = useMemo(
+    () =>
+      new Set(httpFile.requests.map((request) => request.name).filter((name) => name !== undefined)),
+    [httpFile.requests]
+  );
+
   return (
     <div className={dragging ? 'api-client dragging' : 'api-client'} ref={wrapperRef}>
       <div
@@ -183,6 +191,7 @@ function EditorInternal(props: EditorInternalInterface) {
             key={blockKeys[index]}
             request={request}
             active={activeIndex === index}
+            requestNames={requestNames}
             onSelect={() => {
               const view = viewRef.current;
               if (!view) {

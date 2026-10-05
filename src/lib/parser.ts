@@ -19,6 +19,8 @@
 interface HttpRequest {
   /** Title from the ### separator line, or a fallback label */
   title: string;
+  /** Label from a # @name line, for {{name.response.*}} chaining references */
+  name?: string;
   method: string;
   url: string;
   headers: Record<string, string>;
@@ -51,6 +53,15 @@ const QUERY_CONTINUATION = /^[?&]/;
 const VARIABLE_LINE = /^@([A-Za-z0-9_-]+)(?:\.([A-Za-z0-9_-]+))?\s*=\s*(.*)$/;
 const HEADER_LINE = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/;
 const VARIABLE_REF = /\{\{\s*([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?)\s*\}\}/g;
+// {{name.response.body.$.field}} / {{name.response.headers.X}} (and the
+// symmetric .request form): resolved at run time from a recorded response,
+// never at parse time. Only matched whole, so it never collides with the
+// {{variable.environment}} syntax above.
+const CHAIN_REF =
+  /\{\{\s*([A-Za-z0-9_-]+)\.(request|response)\.((?:body|headers)(?:\.[^{}\s]+)?)\s*\}\}/g;
+// # @name login: labels the request that follows (or the current one, before
+// its body) for chaining references; inside a body it is plain text.
+const NAME_LINE = /^#\s*@name\s+([A-Za-z0-9_-]+)\s*$/;
 const ENV_DECLARATION_LINE = /^@env(?:\s*=\s*([A-Za-z0-9_-]+))?\s*$/m;
 
 type VariableLookup = (ref: string) => string | undefined;
@@ -169,12 +180,22 @@ function resolveVariables(
  * (undeclared, or qualified with an environment that does not define them),
  * in order of appearance, without repeats.
  */
-function unresolvedVariables(request: HttpRequest): string[] {
+function unresolvedVariables(
+  request: HttpRequest,
+  requestNames: ReadonlySet<string> = new Set()
+): string[] {
   const texts = [request.url, ...Object.values(request.headers), request.body ?? ''];
   const names = new Set<string>();
   for (const text of texts) {
     for (const match of text.matchAll(VARIABLE_REF)) {
       names.add(match[1]);
+    }
+    for (const match of text.matchAll(CHAIN_REF)) {
+      // A reference to a labeled request resolves at run time, once that
+      // request has been executed; anything else is a typo worth a warning.
+      if (!requestNames.has(match[1])) {
+        names.add(`${match[1]}.${match[2]}.${match[3]}`);
+      }
     }
   }
   return [...names];
@@ -220,6 +241,7 @@ function parseHttpFile(text: string): HttpFile {
 
   let currentTitle = '';
   let currentRequest: HttpRequest | null = null;
+  let pendingName: string | null = null;
   let sawHeaderOrRequest = false;
   let bodyLines: string[] | null = null;
 
@@ -233,6 +255,7 @@ function parseHttpFile(text: string): HttpFile {
       }
       currentTitle = separatorMatch[1].trim();
       currentRequest = null;
+      pendingName = null;
       bodyLines = null;
       sawHeaderOrRequest = false;
       continue;
@@ -256,6 +279,16 @@ function parseHttpFile(text: string): HttpFile {
 
     // Comment lines are only meaningful outside a request body.
     if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
+      // A # @name line labels the next request (or the current one, before
+      // its body) for chaining references.
+      const nameMatch = line.match(NAME_LINE);
+      if (nameMatch) {
+        if (currentRequest && !bodyLines) {
+          currentRequest.name = nameMatch[1];
+        } else if (!currentRequest) {
+          pendingName = nameMatch[1];
+        }
+      }
       continue;
     }
 
@@ -280,11 +313,13 @@ function parseHttpFile(text: string): HttpFile {
         const url = requestMatch ? requestMatch[2] : urlOnlyMatch[1];
         currentRequest = {
           title: currentTitle || url,
+          ...(pendingName ? { name: pendingName } : {}),
           method,
           url,
           headers: {},
           lineIndex: i,
         };
+        pendingName = null;
         requests.push(currentRequest);
         sawHeaderOrRequest = true;
         bodyLines = null;

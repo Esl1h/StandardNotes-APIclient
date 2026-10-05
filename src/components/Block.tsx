@@ -13,6 +13,8 @@ interface BlockProperties {
   request: HttpRequest;
   /** True while the caret inside the source sits on this request */
   active: boolean;
+  /** Labels of the requests in this file, to tell chaining references from typos */
+  requestNames?: ReadonlySet<string>;
   /** Click scroll-to-source callback (moves the editor caret here) */
   onSelect: () => void;
 }
@@ -117,10 +119,10 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
   };
 
   render() {
-    const { request, active, onSelect } = this.props;
+    const { request, active, requestNames, onSelect } = this.props;
     const { running, response, error, prettyBody, binaryUrl, showFullBody } = this.state;
     const ignoredHeaders = findIgnoredHeaders(request.headers);
-    const unresolved = unresolvedVariables(request);
+    const unresolved = unresolvedVariables(request, requestNames);
     const bodyText = prettyBody ?? response?.body ?? '';
     const bodyCapped = bodyText.length > DISPLAY_LIMIT && !showFullBody;
 
