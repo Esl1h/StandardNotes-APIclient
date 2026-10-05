@@ -21,6 +21,8 @@ interface HttpRequest {
   title: string;
   /** Label from a # @name line, for {{name.response.*}} chaining references */
   name?: string;
+  /** Raw # @assert expressions, evaluated against the run-time response */
+  asserts?: string[];
   method: string;
   url: string;
   headers: Record<string, string>;
@@ -62,6 +64,9 @@ const CHAIN_REF =
 // # @name login: labels the request that follows (or the current one, before
 // its body) for chaining references; inside a body it is plain text.
 const NAME_LINE = /^#\s*@name\s+([A-Za-z0-9_-]+)\s*$/;
+// # @assert status == 200: kulala-style assertion kept as raw text and
+// evaluated against the response at run time; never inside a body.
+const ASSERT_LINE = /^#\s*@assert\s+(.+)$/;
 const ENV_DECLARATION_LINE = /^@env(?:\s*=\s*([A-Za-z0-9_-]+))?\s*$/m;
 
 type VariableLookup = (ref: string) => string | undefined;
@@ -242,6 +247,7 @@ function parseHttpFile(text: string): HttpFile {
   let currentTitle = '';
   let currentRequest: HttpRequest | null = null;
   let pendingName: string | null = null;
+  let pendingAsserts: string[] = [];
   let sawHeaderOrRequest = false;
   let bodyLines: string[] | null = null;
 
@@ -256,6 +262,7 @@ function parseHttpFile(text: string): HttpFile {
       currentTitle = separatorMatch[1].trim();
       currentRequest = null;
       pendingName = null;
+      pendingAsserts = [];
       bodyLines = null;
       sawHeaderOrRequest = false;
       continue;
@@ -280,13 +287,24 @@ function parseHttpFile(text: string): HttpFile {
     // Comment lines are only meaningful outside a request body.
     if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
       // A # @name line labels the next request (or the current one, before
-      // its body) for chaining references.
+      // its body) for chaining references; a # @assert line adds an
+      // assertion to it the same way.
       const nameMatch = line.match(NAME_LINE);
       if (nameMatch) {
         if (currentRequest && !bodyLines) {
           currentRequest.name = nameMatch[1];
         } else if (!currentRequest) {
           pendingName = nameMatch[1];
+        }
+        continue;
+      }
+      const assertMatch = line.match(ASSERT_LINE);
+      if (assertMatch) {
+        const source = assertMatch[1].trim();
+        if (currentRequest && !bodyLines) {
+          currentRequest.asserts = [...(currentRequest.asserts ?? []), source];
+        } else if (!currentRequest) {
+          pendingAsserts = [...pendingAsserts, source];
         }
       }
       continue;
@@ -314,12 +332,14 @@ function parseHttpFile(text: string): HttpFile {
         currentRequest = {
           title: currentTitle || url,
           ...(pendingName ? { name: pendingName } : {}),
+          ...(pendingAsserts.length > 0 ? { asserts: pendingAsserts } : {}),
           method,
           url,
           headers: {},
           lineIndex: i,
         };
         pendingName = null;
+        pendingAsserts = [];
         requests.push(currentRequest);
         sawHeaderOrRequest = true;
         bodyLines = null;

@@ -221,6 +221,18 @@
       border-top: 1px solid var(--sn-stylekit-border-color);
       padding-top: 8px;
 
+      .asserts {
+        margin-top: 4px;
+
+        .assert.pass {
+          color: var(--sn-stylekit-success-color);
+        }
+
+        .assert.fail {
+          color: var(--sn-stylekit-danger-color);
+        }
+      }
+
       .response-meta {
         display: flex;
         gap: 12px;

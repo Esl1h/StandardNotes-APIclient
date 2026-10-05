@@ -459,6 +459,45 @@ describe('parseHttpFile', () => {
 
       expect(file.variables).toHaveLength(0);
     });
+
+    it('attaches # @assert lines to the request they precede', () => {
+      const file = parseHttpFile(
+        [
+          '### A',
+          '# @assert status == 200',
+          '# @assert body.$.id exists',
+          'GET https://example.com/a',
+        ].join('\n')
+      );
+
+      expect(file.requests[0].asserts).toEqual(['status == 200', 'body.$.id exists']);
+    });
+
+    it('attaches # @assert lines after the request line, before the body', () => {
+      const file = parseHttpFile(
+        ['GET https://example.com/a', '# @assert status == 200', 'Accept: */*', '', 'body'].join(
+          '\n'
+        )
+      );
+
+      expect(file.requests[0].asserts).toEqual(['status == 200']);
+    });
+
+    it('keeps # @assert lines inside a body as body text', () => {
+      const file = parseHttpFile('POST https://example.com\n\n# @assert status == 200\nbody\n');
+
+      expect(file.requests[0].asserts).toBeUndefined();
+      expect(file.requests[0].body).toBe('# @assert status == 200\nbody');
+    });
+
+    it('does not carry asserts into the next block', () => {
+      const file = parseHttpFile(
+        '# @assert status == 200\nGET https://example.com/a\n\n### B\nGET https://example.com/b\n'
+      );
+
+      expect(file.requests[0].asserts).toEqual(['status == 200']);
+      expect(file.requests[1].asserts).toBeUndefined();
+    });
   });
 
   describe('chaining references', () => {

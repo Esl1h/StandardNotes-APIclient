@@ -90,6 +90,24 @@ function getPath(root: unknown, path: string): unknown {
   return tokens === null ? undefined : applyTokens(root, tokens);
 }
 
+/** A path from a response body as request text; undefined when not JSON or missing. */
+function bodyPath(response: HTTPResponse, path: string): string | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(response.body);
+  } catch {
+    return undefined;
+  }
+  return stringifyValue(getPath(parsed, path));
+}
+
+/** A response header value, by any letter case; undefined when absent. */
+function headerValue(response: HTTPResponse, name: string): string | undefined {
+  const wanted = name.toLowerCase();
+  const found = Object.keys(response.headers).find((key) => key.toLowerCase() === wanted);
+  return found ? response.headers[found] : undefined;
+}
+
 /** A JSONPath value as request text; undefined when the path found nothing. */
 function stringifyValue(value: unknown): string | undefined {
   if (value === null || value === undefined) {
@@ -115,19 +133,12 @@ function resolveChaining(text: string): string {
       return response.body;
     }
     if (path.startsWith('body.')) {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(response.body);
-      } catch {
-        return match;
-      }
-      const value = stringifyValue(getPath(parsed, path.slice('body.'.length)));
+      const value = bodyPath(response, path.slice('body.'.length));
       return value === undefined ? match : value;
     }
     if (path.startsWith('headers.')) {
-      const wanted = path.slice('headers.'.length).toLowerCase();
-      const found = Object.keys(response.headers).find((key) => key.toLowerCase() === wanted);
-      return found ? response.headers[found] : match;
+      const value = headerValue(response, path.slice('headers.'.length));
+      return value === undefined ? match : value;
     }
     return match;
   });
@@ -148,4 +159,12 @@ function resolveChainedRequest(request: HttpRequest): HttpRequest {
   };
 }
 
-export { recordResponse, getResponse, forgetResponses, resolveChaining, resolveChainedRequest };
+export {
+  recordResponse,
+  getResponse,
+  forgetResponses,
+  resolveChaining,
+  resolveChainedRequest,
+  bodyPath,
+  headerValue,
+};
