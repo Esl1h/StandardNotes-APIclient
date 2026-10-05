@@ -23,6 +23,30 @@ test('a note with an indented JSON body renders the editor and its blocks', asyn
   expect(pageErrors).toEqual([]);
 });
 
+test('the caret follows the theme color on a dark background', async ({ page }) => {
+  const plugin = await openHost(page, { text: JSON_NOTE });
+  const content = plugin.locator('.cm-content');
+  await expect(content).toBeVisible();
+
+  // The app sets the stylekit variables; simulate the dark theme inside
+  // the plugin iframe, as the Standard Notes app does.
+  await content.evaluate((element) => {
+    const root = element.ownerDocument.documentElement;
+    root.style.setProperty('--sn-stylekit-contrast-background-color', '#151718');
+    root.style.setProperty('--sn-stylekit-editor-foreground-color', '#e8ebee');
+  });
+
+  // CodeMirror hides the native caret and draws .cm-cursor instead, with
+  // a hardcoded black border (its dark variant needs a dark theme); only
+  // a more specific rule keeps the drawn caret visible in the dark theme.
+  await content.click();
+  await expect
+    .poll(() =>
+      plugin.locator('.cm-cursor').first().evaluate((el) => getComputedStyle(el).borderLeftColor)
+    )
+    .toBe('rgb(232, 235, 238)');
+});
+
 test('opening a note does not save it, typing saves once', async ({ page }) => {
   const plugin = await openHost(page, { text: JSON_NOTE });
   await expect(plugin.locator('.block')).toHaveCount(1);
