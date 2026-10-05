@@ -12,8 +12,6 @@
     border: 1px solid var(--sn-stylekit-border-color);
     border-radius: 8px;
     padding: 8px;
-    /* Collapse the two adjacent panel borders into one page-wide line. */
-    margin-left: -1px;
 
     .variables-panel {
       margin-bottom: 12px;
@@ -124,17 +122,11 @@
   .divider {
     flex: none;
     position: relative;
-    width: 0;
-    /* No visible bar at all: the panels own borders form the seam. */
+    /* The divider itself is the small gap between the panels, aligned with
+     * the app's spacing: no visible bar, just comfortable dragging. */
+    width: 8px;
     background: transparent;
     cursor: col-resize;
-
-    /* Invisible but comfortable grab area around the seam. */
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0 -5px;
-    }
   }
 
   &.dragging {
@@ -159,9 +151,8 @@
     .requests-list {
       flex: 1 1 0;
       min-height: 0;
-      /* Same single seam as the wide layout, now horizontal. */
-      margin-left: 0;
-      margin-top: -1px;
+      /* Same gap as the wide layout, now horizontal. */
+      margin-top: 8px;
     }
   }
 
