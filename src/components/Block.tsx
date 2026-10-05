@@ -1,6 +1,6 @@
 import React from 'react';
 import { type HttpRequest, unresolvedVariables } from '../lib/parser';
-import { executeRequest } from '../lib/executor';
+import { executeRequest, type ExecutionResult } from '../lib/executor';
 import { recordResponse, resolveChainedRequest } from '../lib/chaining';
 import { resolveDynamicRequest } from '../lib/dynamicVars';
 import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
@@ -67,7 +67,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     }
   }
 
-  run = (): Promise<void> => {
+  run = (): Promise<ExecutionResult> => {
     this.abortController?.abort();
     const controller = new AbortController();
     this.abortController = controller;
@@ -103,6 +103,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
           ? URL.createObjectURL(result.response.binary.blob)
           : null,
       });
+      return result;
     });
   };
 

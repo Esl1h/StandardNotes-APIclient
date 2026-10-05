@@ -127,6 +127,9 @@ GET https://jsonplaceholder.typicode.com/posts/1
 - Responses are shown under each block at run time and are not saved;
   images are previewed and any binary response can be downloaded
 - `Ctrl/Cmd+Enter` in the source runs the request under the caret
+- `Run all` runs every request in file order, waiting for each one so a
+  chained request reads the response recorded by the request before it, and
+  stops at the first failure (each block shows its own error and hint)
 - Browsers never send headers such as `Host`, `Cookie` or `Origin`; the
   block warns when a request declares one
 

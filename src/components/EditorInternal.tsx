@@ -28,6 +28,7 @@ function EditorInternal(props: EditorInternalInterface) {
   const [caretLine, setCaretLine] = useState<number | null>(null);
   const [splitPct, setSplitPct] = useState<number>(() => readSplitPct());
   const [dragging, setDragging] = useState(false);
+  const [runningAll, setRunningAll] = useState(false);
   // Block instances by index, for Mod-Enter (run the request under the
   // caret) and the Run all button.
   const blockRefs = useRef(new Map<number, InstanceType<typeof Block>>());
@@ -55,6 +56,31 @@ function EditorInternal(props: EditorInternalInterface) {
   useEffect(() => {
     runRequestUnderCaretRef.current = runRequestUnderCaret;
   });
+
+  // Every request in file order, waiting for each one, so a chained request
+  // reads the response of the request before it. Stops at the first failure:
+  // the blocks after it usually need that response, and each failure already
+  // shows its own error and hint.
+  const runAll = async () => {
+    if (runningAll) {
+      return;
+    }
+    setRunningAll(true);
+    try {
+      for (let index = 0; index < httpFile.requests.length; index++) {
+        const block = blockRefs.current.get(index);
+        if (!block) {
+          continue;
+        }
+        const result = await block.run();
+        if (result?.error) {
+          break;
+        }
+      }
+    } finally {
+      setRunningAll(false);
+    }
+  };
 
   const buildState = useCallback(
     (doc: string) =>
@@ -205,6 +231,13 @@ function EditorInternal(props: EditorInternalInterface) {
         }}
       />
       <div className="requests-list">
+        {httpFile.requests.length > 0 && (
+          <div className="run-all-row">
+            <button className="run-all" onClick={() => void runAll()} disabled={runningAll}>
+              {runningAll ? 'Running all...' : 'Run all'}
+            </button>
+          </div>
+        )}
         <VariablesPanel
           variables={httpFile.variables}
           environments={httpFile.environments}
