@@ -112,10 +112,12 @@
       height: 100%;
     }
 
-    /* CodeMirror's base theme hardcodes a black caret, invisible on the
-     * dark contrast background; follow the theme instead. */
-    .cm-content {
-      caret-color: var(--sn-stylekit-contrast-foreground-color);
+    /* CodeMirror hides the native caret and draws .cm-cursor instead, with
+     * a hardcoded black border (its light variant needs a CodeMirror dark
+     * theme, which this editor never sets); follow the app theme instead,
+     * the same variable the app uses for its own inputs. */
+    .cm-cursorLayer .cm-cursor {
+      border-left-color: var(--sn-stylekit-editor-foreground-color, inherit);
     }
   }
 
