@@ -225,6 +225,48 @@ describe('Block', () => {
     );
   });
 
+  it('moves the focus between blocks with the arrow keys', () => {
+    render(
+      <div>
+        <Block
+          request={{ ...request, url: 'https://example.com/a' }}
+          active={false}
+          onSelect={() => {}}
+        />
+        <Block
+          request={{ ...request, url: 'https://example.com/b' }}
+          active={false}
+          onSelect={() => {}}
+        />
+      </div>
+    );
+    const [first, second] = document.querySelectorAll<HTMLElement>('.block');
+
+    first.focus();
+    expect(document.activeElement).toBe(first);
+
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(second);
+
+    fireEvent.keyDown(second, { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(first);
+  });
+
+  it('activates the block with Enter or Space, not keys meant for its buttons', () => {
+    const onSelect = vi.fn();
+    render(<Block request={request} active={false} onSelect={onSelect} />);
+    const block = document.querySelector('.block') as HTMLElement;
+
+    fireEvent.keyDown(block, { key: 'Enter' });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(block, { key: ' ' });
+    expect(onSelect).toHaveBeenCalledTimes(2);
+
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Run' }), { key: 'Enter' });
+    expect(onSelect).toHaveBeenCalledTimes(2);
+  });
+
   it('shows no variable warning when nothing is left to resolve', () => {
     render(<Block request={request} active={false} onSelect={() => {}} />);
 

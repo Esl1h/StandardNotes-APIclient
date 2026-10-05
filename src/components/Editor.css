@@ -185,6 +185,12 @@
     padding: 8px;
     margin-bottom: 8px;
 
+    &:focus {
+      outline: none;
+      border-color: var(--sn-stylekit-info-color);
+      box-shadow: 0 0 0 1px var(--sn-stylekit-info-color-translucent);
+    }
+
     &.active {
       border-color: var(--sn-stylekit-info-color);
       box-shadow: 0 0 0 1px var(--sn-stylekit-info-color-translucent);
