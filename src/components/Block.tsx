@@ -5,6 +5,7 @@ import { recordResponse, resolveChainedRequest } from '../lib/chaining';
 import { resolveDynamicRequest } from '../lib/dynamicVars';
 import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
 import { evaluateAssert } from '../lib/asserts';
+import { toCurl } from '../lib/curl';
 import { prettyPrintBody } from '../lib/prettyPrint';
 import { type HTTPError, type HTTPResponse } from '../lib/types';
 
@@ -169,6 +170,16 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
           <span className="url" title={request.url}>
             {request.url}
           </span>
+          <button
+            className="copy-curl"
+            onClick={(event) => {
+              event.stopPropagation();
+              navigator.clipboard?.writeText(toCurl(request));
+            }}
+            title="Copy this request as a cURL command (with the variables already resolved)"
+          >
+            Copy as cURL
+          </button>
         </div>
         {ignoredHeaders.length > 0 && (
           <div className="warning">Browsers ignore these headers: {ignoredHeaders.join(', ')}</div>
