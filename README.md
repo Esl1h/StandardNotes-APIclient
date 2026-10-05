@@ -122,6 +122,7 @@ GET https://jsonplaceholder.typicode.com/posts/1
   the real value
 - Responses are shown under each block at run time and are not saved;
   images are previewed and any binary response can be downloaded
+- `Ctrl/Cmd+Enter` in the source runs the request under the caret
 - Browsers never send headers such as `Host`, `Cookie` or `Origin`; the
   block warns when a request declares one
 

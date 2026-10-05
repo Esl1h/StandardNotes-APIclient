@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Annotation, EditorState, Transaction } from '@codemirror/state';
+import { Annotation, EditorState, Prec, Transaction } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { defaultKeymap, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { minimalSetup } from 'codemirror';
@@ -28,11 +28,32 @@ function EditorInternal(props: EditorInternalInterface) {
   const [caretLine, setCaretLine] = useState<number | null>(null);
   const [splitPct, setSplitPct] = useState<number>(() => readSplitPct());
   const [dragging, setDragging] = useState(false);
+  // Block instances by index, for Mod-Enter (run the request under the
+  // caret) and the Run all button.
+  const blockRefs = useRef(new Map<number, InstanceType<typeof Block>>());
+  const activeIndexRef = useRef<number | null>(null);
 
   // The listener lives as long as the view, so it reads the callback through a ref.
   const onTextChangeRef = useRef(onTextChange);
   useEffect(() => {
     onTextChangeRef.current = onTextChange;
+  });
+
+  const runRequestUnderCaret = () => {
+    const index = activeIndexRef.current;
+    if (index === null) {
+      return false;
+    }
+    const block = blockRefs.current.get(index);
+    if (!block) {
+      return false;
+    }
+    void block.run();
+    return true;
+  };
+  const runRequestUnderCaretRef = useRef(runRequestUnderCaret);
+  useEffect(() => {
+    runRequestUnderCaretRef.current = runRequestUnderCaret;
   });
 
   const buildState = useCallback(
@@ -56,6 +77,10 @@ function EditorInternal(props: EditorInternalInterface) {
               setCaretLine(update.state.doc.lineAt(offset).number - 1);
             }
           }),
+          // Above defaultKeymap, which binds Mod-Enter to insertBlankLine.
+          Prec.highest(
+            keymap.of([{ key: 'Mod-Enter', run: () => runRequestUnderCaretRef.current() }])
+          ),
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
         ],
       }),
@@ -115,6 +140,12 @@ function EditorInternal(props: EditorInternalInterface) {
     return nextIndex;
   }, [httpFile.requests, caretLine]);
 
+  // The keymap is wired once with the view, so it reads the active index
+  // through a ref.
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
   // Keyed by title and repeat count, not by line: adding lines above a block
   // must not remount it and drop the response it is showing.
   const blockKeys = useMemo(() => {
@@ -130,7 +161,9 @@ function EditorInternal(props: EditorInternalInterface) {
   // is not warned about as an unresolved variable.
   const requestNames = useMemo(
     () =>
-      new Set(httpFile.requests.map((request) => request.name).filter((name) => name !== undefined)),
+      new Set(
+        httpFile.requests.map((request) => request.name).filter((name) => name !== undefined)
+      ),
     [httpFile.requests]
   );
 
@@ -189,6 +222,13 @@ function EditorInternal(props: EditorInternalInterface) {
         {httpFile.requests.map((request, index) => (
           <Block
             key={blockKeys[index]}
+            ref={(block: InstanceType<typeof Block> | null) => {
+              if (block) {
+                blockRefs.current.set(index, block);
+              } else {
+                blockRefs.current.delete(index);
+              }
+            }}
             request={request}
             active={activeIndex === index}
             requestNames={requestNames}

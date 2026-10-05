@@ -66,7 +66,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     }
   }
 
-  run = () => {
+  run = (): Promise<void> => {
     this.abortController?.abort();
     const controller = new AbortController();
     this.abortController = controller;
@@ -81,7 +81,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     });
     // Chained references resolve from responses recorded by earlier runs;
     // each execution resolves from what is current, never from the note.
-    executeRequest(resolveChainedRequest(this.props.request), {
+    return executeRequest(resolveChainedRequest(this.props.request), {
       signal: controller.signal,
     }).then((result) => {
       // A newer run owns the state; this stale result must not overwrite it.

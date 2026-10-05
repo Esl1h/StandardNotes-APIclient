@@ -1,9 +1,13 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { EditorView } from '@codemirror/view';
 import { undo } from '@codemirror/commands';
 import { type EditorKitDelegate } from '@standardnotes/editor-kit';
+import { executeRequest } from '../lib/executor';
 import Editor from './Editor';
+
+vi.mock('../lib/executor', () => ({ executeRequest: vi.fn() }));
+const executeMock = vi.mocked(executeRequest);
 
 // Capture the delegate the Editor hands to EditorKit and observe saves, so the
 // tests drive the same calls the real EditorKit makes against the delegate.
@@ -23,6 +27,11 @@ vi.mock('@standardnotes/editor-kit', () => ({
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+beforeEach(() => {
+  executeMock.mockReset();
+  executeMock.mockResolvedValue({});
 });
 
 /**
@@ -95,6 +104,30 @@ describe('Editor', () => {
     expect(blocks).toHaveLength(2);
     expect(blocks[0]).not.toHaveClass('active');
     expect(blocks[1]).toHaveClass('active');
+  });
+
+  it('runs the request under the caret with Ctrl/Cmd+Enter', async () => {
+    const { getView, loadNote } = setup();
+    loadNote('### One\nGET https://a.example\n\n### Two\nGET https://b.example\n');
+    act(() => {
+      const view = getView();
+      view.dispatch({ selection: { anchor: view.state.doc.line(5).from } });
+    });
+
+    const content = getView().dom.querySelector('.cm-content') as HTMLElement;
+    content.focus();
+    fireEvent.keyDown(content, {
+      key: 'Enter',
+      code: 'Enter',
+      keyCode: 13,
+      ctrlKey: true,
+    });
+
+    await waitFor(() => expect(executeMock).toHaveBeenCalledTimes(1));
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ url: 'https://b.example' }),
+      expect.anything()
+    );
   });
 
   it('keeps a block mounted, and its response with it, when lines are added above', () => {
