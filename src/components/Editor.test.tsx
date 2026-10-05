@@ -4,6 +4,7 @@ import { EditorView } from '@codemirror/view';
 import { undo } from '@codemirror/commands';
 import { type EditorKitDelegate } from '@standardnotes/editor-kit';
 import { executeRequest } from '../lib/executor';
+import { forgetResponses } from '../lib/chaining';
 import Editor from './Editor';
 
 vi.mock('../lib/executor', () => ({ executeRequest: vi.fn() }));
@@ -32,6 +33,7 @@ afterEach(() => {
 beforeEach(() => {
   executeMock.mockReset();
   executeMock.mockResolvedValue({});
+  forgetResponses();
 });
 
 /**
@@ -126,6 +128,80 @@ describe('Editor', () => {
     await waitFor(() => expect(executeMock).toHaveBeenCalledTimes(1));
     expect(executeMock).toHaveBeenCalledWith(
       expect.objectContaining({ url: 'https://b.example' }),
+      expect.anything()
+    );
+  });
+
+  it('runs every request in file order and stops at the first failure', async () => {
+    const { loadNote } = setup();
+    loadNote(
+      '### A\nGET https://a.example\n\n### B\nGET https://b.example\n\n### C\nGET https://c.example\n'
+    );
+    executeMock.mockImplementation((request: { url: string }) =>
+      Promise.resolve(
+        request.url === 'https://b.example'
+          ? { error: { kind: 'network', message: 'Failed to fetch' } }
+          : {
+              response: {
+                status: 200,
+                timeMs: 1,
+                sizeBytes: 1,
+                sizeIsDecoded: true,
+                headers: {},
+                body: 'ok',
+              },
+            }
+      )
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run all' }));
+
+    await waitFor(() => expect(executeMock).toHaveBeenCalledTimes(2));
+    expect(executeMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ url: 'https://a.example' }),
+      expect.anything()
+    );
+    expect(executeMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ url: 'https://b.example' }),
+      expect.anything()
+    );
+    await waitFor(() => expect(executeMock.mock.calls).toHaveLength(2));
+    expect(screen.getByRole('button', { name: 'Run all' })).toBeEnabled();
+  });
+
+  it('feeds a chained request with the response of the request before it', async () => {
+    const { loadNote } = setup();
+    loadNote(
+      [
+        '# @name login',
+        'GET https://a.example',
+        '',
+        '### Next',
+        'GET https://x.example',
+        'Authorization: Bearer {{login.response.body.$.token}}',
+      ].join('\n')
+    );
+    executeMock.mockResolvedValue({
+      response: {
+        status: 200,
+        timeMs: 1,
+        sizeBytes: 1,
+        sizeIsDecoded: true,
+        headers: {},
+        body: '{"token": "t"}',
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run all' }));
+
+    await waitFor(() => expect(executeMock).toHaveBeenCalledTimes(2));
+    expect(executeMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        url: 'https://x.example',
+        headers: { Authorization: 'Bearer t' },
+      }),
       expect.anything()
     );
   });
