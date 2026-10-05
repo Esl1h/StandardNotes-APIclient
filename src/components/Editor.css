@@ -113,6 +113,12 @@
     .cm-editor {
       height: 100%;
     }
+
+    /* CodeMirror's base theme hardcodes a black caret, invisible on the
+     * dark contrast background; follow the theme instead. */
+    .cm-content {
+      caret-color: var(--sn-stylekit-contrast-foreground-color);
+    }
   }
 
   .divider {
