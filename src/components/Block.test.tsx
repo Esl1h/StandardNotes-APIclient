@@ -203,6 +203,28 @@ describe('Block', () => {
     expect(document.querySelector('.assert')).toBeNull();
   });
 
+  it('copies the request as a cURL command', () => {
+    const writeText = vi.fn();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      writable: true,
+      configurable: true,
+    });
+    render(
+      <Block
+        request={{ ...request, method: 'POST', body: '{"a": 1}' }}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+
+    expect(writeText).toHaveBeenCalledWith(
+      "curl -X POST 'https://example.com/ping' --data-raw '{\"a\": 1}'"
+    );
+  });
+
   it('shows no variable warning when nothing is left to resolve', () => {
     render(<Block request={request} active={false} onSelect={() => {}} />);
 

@@ -214,6 +214,17 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+
+      .copy-curl {
+        margin-left: auto;
+        background: none;
+        border: 1px solid var(--sn-stylekit-border-color);
+        border-radius: 4px;
+        padding: 2px 8px;
+        color: var(--sn-stylekit-neutral-color);
+        cursor: pointer;
+        white-space: nowrap;
+      }
     }
 
     .response {
