@@ -386,4 +386,5 @@ export {
   readActiveEnvironment,
   interpolate,
   unresolvedVariables,
+  CHAIN_REF,
 };
