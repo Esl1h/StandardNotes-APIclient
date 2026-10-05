@@ -130,6 +130,10 @@ GET https://jsonplaceholder.typicode.com/posts/1
 - `Run all` runs every request in file order, waiting for each one so a
   chained request reads the response recorded by the request before it, and
   stops at the first failure (each block shows its own error and hint)
+- `# @assert <lhs> <op> <rhs>` lines inside a block are checked against its
+  response and shown as ✓/✗; the left side can be `status`, `headers.<name>`,
+  `body` or `body.$.path`, the operators are `==`, `!=`, `>`, `<`, `>=`, `<=`,
+  `exists` and `not exists`, and a malformed assertion never passes silently
 - Browsers never send headers such as `Host`, `Cookie` or `Origin`; the
   block warns when a request declares one
 

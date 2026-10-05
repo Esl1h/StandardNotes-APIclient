@@ -4,6 +4,7 @@ import { executeRequest, type ExecutionResult } from '../lib/executor';
 import { recordResponse, resolveChainedRequest } from '../lib/chaining';
 import { resolveDynamicRequest } from '../lib/dynamicVars';
 import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
+import { evaluateAssert } from '../lib/asserts';
 import { prettyPrintBody } from '../lib/prettyPrint';
 import { type HTTPError, type HTTPResponse } from '../lib/types';
 
@@ -225,6 +226,26 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
                 </div>
               ))}
             </details>
+            {request.asserts && request.asserts.length > 0 && (
+              <div className="asserts">
+                {request.asserts.map((source, index) => {
+                  const passed = response ? (evaluateAssert(source, response) ?? false) : false;
+                  return (
+                    <div
+                      className={passed ? 'assert pass' : 'assert fail'}
+                      key={`${index}-${source}`}
+                      title={
+                        passed
+                          ? undefined
+                          : 'Failing or malformed assertion; a malformed one never passes'
+                      }
+                    >
+                      {passed ? '✓' : '✗'} {source}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             {response.binary ? (
               <div className="binary-response">
                 {binaryUrl && response.binary.contentType.startsWith('image/') && (

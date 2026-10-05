@@ -166,6 +166,43 @@ describe('Block', () => {
     );
   });
 
+  it('shows one pass/fail mark per assert after a response', async () => {
+    await runBlock(
+      {
+        response: {
+          status: 201,
+          timeMs: 5,
+          sizeBytes: 10,
+          sizeIsDecoded: true,
+          headers: {},
+          body: '{"id": 7}',
+        },
+      },
+      {
+        asserts: ['status == 200', 'body.$.id exists'],
+      } as Partial<HttpRequest>
+    );
+
+    const marks = document.querySelectorAll('.assert');
+    expect(marks).toHaveLength(2);
+    expect(marks[0]).toHaveTextContent('✗ status == 200');
+    expect(marks[0]).toHaveClass('fail');
+    expect(marks[1]).toHaveTextContent('✓ body.$.id exists');
+    expect(marks[1]).toHaveClass('pass');
+  });
+
+  it('shows no assert marks before a response', () => {
+    render(
+      <Block
+        request={{ ...request, asserts: ['status == 200'] }}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    expect(document.querySelector('.assert')).toBeNull();
+  });
+
   it('shows no variable warning when nothing is left to resolve', () => {
     render(<Block request={request} active={false} onSelect={() => {}} />);
 
