@@ -129,6 +129,8 @@ GET https://jsonplaceholder.typicode.com/posts/1
 - `Ctrl/Cmd+Enter` in the source runs the request under the caret
 - `Copy as cURL` on a block copies it as a `curl` command line, with the
   variables already resolved and every value shell-quoted
+- Blocks receive the keyboard focus: `Tab` reaches them, `ArrowUp`/`ArrowDown`
+  move between them and `Enter`/`Space` select one, scrolling the source to it
 - `Run all` runs every request in file order, waiting for each one so a
   chained request reads the response recorded by the request before it, and
   stops at the first failure (each block shows its own error and hint)

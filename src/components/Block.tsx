@@ -113,6 +113,28 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     this.abortController?.abort();
   };
 
+  // Arrow keys move the focus between blocks; Enter and Space activate the
+  // focused block, unless the key was meant for a button inside it.
+  handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const block = event.currentTarget;
+    if (event.target !== block) {
+      return;
+    }
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      const sibling =
+        event.key === 'ArrowDown' ? block.nextElementSibling : block.previousElementSibling;
+      if (sibling instanceof HTMLElement && sibling.classList.contains('block')) {
+        sibling.focus();
+      }
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.props.onSelect();
+    }
+  };
+
   closeResponse = () => {
     this.releaseBinaryUrl();
     this.setState({
@@ -141,7 +163,14 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     const bodyCapped = bodyText.length > DISPLAY_LIMIT && !showFullBody;
 
     return (
-      <div className={active ? 'block active' : 'block'} onClick={onSelect} role="presentation">
+      <div
+        className={active ? 'block active' : 'block'}
+        onClick={onSelect}
+        onKeyDown={this.handleKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label={`${request.method} ${request.url}`}
+      >
         <div className="block-summary">
           {running ? (
             <button
