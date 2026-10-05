@@ -1,6 +1,7 @@
 import React from 'react';
 import { type HttpRequest, unresolvedVariables } from '../lib/parser';
 import { executeRequest } from '../lib/executor';
+import { recordResponse, resolveChainedRequest } from '../lib/chaining';
 import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
 import { prettyPrintBody } from '../lib/prettyPrint';
 import { type HTTPError, type HTTPResponse } from '../lib/types';
@@ -78,10 +79,18 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
       binaryUrl: null,
       showFullBody: false,
     });
-    executeRequest(this.props.request, { signal: controller.signal }).then((result) => {
+    // Chained references resolve from responses recorded by earlier runs;
+    // each execution resolves from what is current, never from the note.
+    executeRequest(resolveChainedRequest(this.props.request), {
+      signal: controller.signal,
+    }).then((result) => {
       // A newer run owns the state; this stale result must not overwrite it.
       if (this.abortController !== controller) {
         return;
+      }
+      const { request } = this.props;
+      if (request.name && result.response) {
+        recordResponse(request.name, result.response);
       }
       this.setState({
         running: false,

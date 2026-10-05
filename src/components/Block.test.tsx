@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Block from './Block';
 import { executeRequest, type ExecutionResult } from '../lib/executor';
 import { type HttpRequest } from '../lib/parser';
+import { forgetResponses, getResponse, recordResponse } from '../lib/chaining';
 
 vi.mock('../lib/executor', () => ({ executeRequest: vi.fn() }));
 const executeMock = vi.mocked(executeRequest);
@@ -29,6 +30,7 @@ beforeEach(() => {
   // jsdom has no object URL support.
   URL.createObjectURL = vi.fn(() => 'blob:preview');
   URL.revokeObjectURL = vi.fn();
+  forgetResponses();
 });
 
 describe('Block', () => {
@@ -39,6 +41,55 @@ describe('Block', () => {
 
     expect(screen.getByText(/Request failed \(network\): Failed to fetch/)).toBeInTheDocument();
     expect(screen.getByText('Probable CORS block')).toBeInTheDocument();
+  });
+
+  it('resolves chained references from a recorded response at run time', async () => {
+    recordResponse('login', {
+      status: 200,
+      timeMs: 1,
+      sizeBytes: 10,
+      sizeIsDecoded: true,
+      headers: {},
+      body: '{"token": "secret-token"}',
+    });
+    executeMock.mockResolvedValue({ response: undefined });
+    render(
+      <Block
+        request={{
+          ...request,
+          url: 'https://example.com/x?t={{login.response.body.$.token}}',
+        }}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+    await waitFor(() => expect(executeMock).toHaveBeenCalled());
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ url: 'https://example.com/x?t=secret-token' }),
+      expect.anything()
+    );
+  });
+
+  it('records the response of a named request for later chaining', async () => {
+    executeMock.mockResolvedValue({
+      response: {
+        status: 200,
+        timeMs: 1,
+        sizeBytes: 10,
+        sizeIsDecoded: true,
+        headers: {},
+        body: '{"token": "secret-token"}',
+      },
+    });
+    render(<Block request={{ ...request, name: 'login' }} active={false} onSelect={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+    await waitFor(() => expect(getResponse('login')).toBeDefined());
+
+    expect(getResponse('login')?.body).toBe('{"token": "secret-token"}');
   });
 
   it('warns about headers the browser will not send', () => {
@@ -91,7 +142,9 @@ describe('Block', () => {
       />
     );
 
-    expect(screen.getByText('Unresolved variables: ghost.response.body.$.token')).toBeInTheDocument();
+    expect(
+      screen.getByText('Unresolved variables: ghost.response.body.$.token')
+    ).toBeInTheDocument();
   });
 
   it('shows no variable warning when nothing is left to resolve', () => {

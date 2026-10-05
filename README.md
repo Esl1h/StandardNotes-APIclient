@@ -110,6 +110,13 @@ GET https://jsonplaceholder.typicode.com/posts/1
 - Everything after the first blank line of the block is the request body,
   without its trailing blank lines
 - `#` and `//` lines outside a body are comments
+- `# @name login` labels the request that follows (or the current one, before
+  its body) for chaining: once it runs, later requests can interpolate
+  `{{login.response.body.$.field}}` (a JSONPath subset: `$`, `.field`,
+  `[index]`, `[*]`) and `{{login.response.headers.X-Token}}` from the recorded
+  response. References resolve at run time and are never saved into the note.
+  Because `response` and `request` mark a chaining reference, an environment
+  cannot be named `response` or `request`
 - The variable list masks the value of names containing `token`, `secret`,
   `key`, `password` or `auth` until you press `show`; `copy` always copies
   the real value
