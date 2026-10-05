@@ -65,6 +65,35 @@ describe('Block', () => {
     expect(screen.getByText('Unresolved variables: host, token')).toBeInTheDocument();
   });
 
+  it('does not warn about chaining references to labeled requests', () => {
+    render(
+      <Block
+        request={{
+          ...request,
+          headers: { 'X-Auth': 'Bearer {{login.response.body.$.token}}' },
+        }}
+        requestNames={new Set(['login'])}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    expect(screen.queryByText(/Unresolved variables/)).not.toBeInTheDocument();
+  });
+
+  it('warns about chaining references to labels that do not exist', () => {
+    render(
+      <Block
+        request={{ ...request, headers: { 'X-Auth': '{{ghost.response.body.$.token}}' } }}
+        requestNames={new Set(['login'])}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    expect(screen.getByText('Unresolved variables: ghost.response.body.$.token')).toBeInTheDocument();
+  });
+
   it('shows no variable warning when nothing is left to resolve', () => {
     render(<Block request={request} active={false} onSelect={() => {}} />);
 

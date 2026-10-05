@@ -361,7 +361,8 @@ describe('parseHttpFile', () => {
   });
 
   describe('unresolved variables', () => {
-    const unresolved = (text: string) => unresolvedVariables(parseHttpFile(text).requests[0]);
+    const unresolved = (text: string) =>
+      unresolvedVariables(parseHttpFile(text).requests[0], new Set<string>());
 
     it('lists the names left in the url, headers and body, once each', () => {
       const text = [
@@ -421,6 +422,76 @@ describe('parseHttpFile', () => {
         '@env = dev\n@base = b\n@x.dev = {{base}}1\n@y.dev = {{base}}2\nGET https://e.com/{{x}}{{y}}\n';
 
       expect(parseHttpFile(text).requests[0].url).toBe('https://e.com/b1b2');
+    });
+  });
+
+  describe('# @name labels', () => {
+    it('labels the next request for chaining', () => {
+      const file = parseHttpFile('### Login\n# @name login\nPOST https://example.com/login\n');
+
+      expect(file.requests[0].name).toBe('login');
+    });
+
+    it('labels a request from a name line after the request line', () => {
+      const file = parseHttpFile('POST https://example.com/login\n# @name login\nAccept: */*\n');
+
+      expect(file.requests[0].name).toBe('login');
+    });
+
+    it('keeps a # @name line inside a body as body text', () => {
+      const file = parseHttpFile('POST https://example.com\n\n# @name login\nbody\n');
+
+      expect(file.requests[0].body).toBe('# @name login\nbody');
+      expect(file.requests[0].name).toBeUndefined();
+    });
+
+    it('does not carry a label into the next block', () => {
+      const file = parseHttpFile(
+        '# @name login\nPOST https://example.com/a\n\n### B\nGET https://example.com/b\n'
+      );
+
+      expect(file.requests[0].name).toBe('login');
+      expect(file.requests[1].name).toBeUndefined();
+    });
+
+    it('does not treat # @name as a variable declaration', () => {
+      const file = parseHttpFile('# @name login\nPOST https://example.com/a\n');
+
+      expect(file.variables).toHaveLength(0);
+    });
+  });
+
+  describe('chaining references', () => {
+    const unresolvedWith = (text: string, names: string[]) =>
+      unresolvedVariables(parseHttpFile(text).requests[0], new Set(names));
+
+    it('leaves response references literal for run-time resolution', () => {
+      const text = [
+        '# @name login',
+        'POST https://example.com/login',
+        '',
+        '### Next',
+        'GET https://example.com/x',
+        'Authorization: Bearer {{login.response.body.$.token}}',
+      ].join('\n');
+
+      const file = parseHttpFile(text);
+
+      expect(file.requests[1].headers.Authorization).toBe(
+        'Bearer {{login.response.body.$.token}}'
+      );
+    });
+
+    it('skips warnings for references to labeled requests', () => {
+      const text = 'GET https://example.com/x\nX-Token: {{login.response.headers.X-Token}}\n';
+
+      expect(unresolvedWith(text, ['login'])).toEqual([]);
+    });
+
+    it('lists references to labels that do not exist as written', () => {
+      const text = 'GET https://example.com/x\nX-Token: {{ghost.response.body.$.token}}\n';
+
+      expect(unresolvedWith(text, ['login'])).toEqual(['ghost.response.body.$.token']);
     });
   });
 
