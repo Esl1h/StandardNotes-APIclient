@@ -117,6 +117,10 @@ GET https://jsonplaceholder.typicode.com/posts/1
   response. References resolve at run time and are never saved into the note.
   Because `response` and `request` mark a chaining reference, an environment
   cannot be named `response` or `request`
+- Dynamic variables are generated on every run, never saved:
+  `{{$uuid}}`, `{{$timestamp}}` (unix seconds), `{{$randomInt 1 10}}`
+  (inclusive) and `{{$datetime}}` or `{{$datetime rfc1123}}` (iso8601 by
+  default)
 - The variable list masks the value of names containing `token`, `secret`,
   `key`, `password` or `auth` until you press `show`; `copy` always copies
   the real value

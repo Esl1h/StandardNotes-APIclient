@@ -465,6 +465,14 @@ describe('parseHttpFile', () => {
     const unresolvedWith = (text: string, names: string[]) =>
       unresolvedVariables(parseHttpFile(text).requests[0], new Set(names));
 
+    it('leaves dynamic variables literal for run-time generation', () => {
+      const file = parseHttpFile('GET https://example.com/{{$uuid}}\nX-T: {{$randomInt 1 5}}\n');
+
+      expect(file.requests[0].url).toBe('https://example.com/{{$uuid}}');
+      expect(file.requests[0].headers['X-T']).toBe('{{$randomInt 1 5}}');
+      expect(unresolvedWith('GET https://example.com/{{$uuid}}', [])).toEqual([]);
+    });
+
     it('leaves response references literal for run-time resolution', () => {
       const text = [
         '# @name login',
@@ -477,9 +485,7 @@ describe('parseHttpFile', () => {
 
       const file = parseHttpFile(text);
 
-      expect(file.requests[1].headers.Authorization).toBe(
-        'Bearer {{login.response.body.$.token}}'
-      );
+      expect(file.requests[1].headers.Authorization).toBe('Bearer {{login.response.body.$.token}}');
     });
 
     it('skips warnings for references to labeled requests', () => {

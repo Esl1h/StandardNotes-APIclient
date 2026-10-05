@@ -147,6 +147,25 @@ describe('Block', () => {
     ).toBeInTheDocument();
   });
 
+  it('resolves dynamic variables at run time', async () => {
+    executeMock.mockResolvedValue({});
+    render(
+      <Block
+        request={{ ...request, url: 'https://example.com/{{$randomInt 1 1}}' }}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+    await waitFor(() => expect(executeMock).toHaveBeenCalledTimes(1));
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ url: 'https://example.com/1' }),
+      expect.anything()
+    );
+  });
+
   it('shows no variable warning when nothing is left to resolve', () => {
     render(<Block request={request} active={false} onSelect={() => {}} />);
 

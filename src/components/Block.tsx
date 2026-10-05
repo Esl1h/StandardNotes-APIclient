@@ -2,6 +2,7 @@ import React from 'react';
 import { type HttpRequest, unresolvedVariables } from '../lib/parser';
 import { executeRequest } from '../lib/executor';
 import { recordResponse, resolveChainedRequest } from '../lib/chaining';
+import { resolveDynamicRequest } from '../lib/dynamicVars';
 import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
 import { prettyPrintBody } from '../lib/prettyPrint';
 import { type HTTPError, type HTTPResponse } from '../lib/types';
@@ -80,8 +81,9 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
       showFullBody: false,
     });
     // Chained references resolve from responses recorded by earlier runs;
-    // each execution resolves from what is current, never from the note.
-    return executeRequest(resolveChainedRequest(this.props.request), {
+    // dynamic variables are generated fresh on every execution. Neither is
+    // ever written back into the note.
+    return executeRequest(resolveDynamicRequest(resolveChainedRequest(this.props.request)), {
       signal: controller.signal,
     }).then((result) => {
       // A newer run owns the state; this stale result must not overwrite it.
