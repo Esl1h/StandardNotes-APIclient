@@ -63,7 +63,10 @@
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          color: var(--sn-stylekit-neutral-contrast-color);
+          /* Foreground, not neutral-contrast: that one is white in the light
+           * theme and only reads on top of a neutral-color background, so a
+           * revealed token turned invisible on the panel background. */
+          color: var(--sn-stylekit-foreground-color);
         }
 
         .copy,
