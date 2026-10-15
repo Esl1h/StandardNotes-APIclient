@@ -27,7 +27,6 @@
     "build": "vite build",
     "test": "vitest run",
     "e2e": "playwright test",
-    "server": "vite preview --port 3000",
     "server-cors": "vite preview --port 3000",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
