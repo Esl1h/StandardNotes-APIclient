@@ -181,7 +181,10 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
         className={active ? 'block active' : 'block'}
         onClick={onSelect}
         onKeyDown={this.handleKeyDown}
-        role="button"
+        // A group, not a button: the block holds real buttons inside, and
+        // interactive content must not nest under role=button. The group
+        // itself stays focusable and keyboard-navigable.
+        role="group"
         tabIndex={0}
         aria-label={`${request.method} ${request.url}`}
       >
