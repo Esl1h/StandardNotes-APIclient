@@ -33,7 +33,7 @@
     "pretty": "prettier --write 'src/**/*.{html,css,scss,js,jsx,ts,tsx,json}' README.md"
   },
   "dependencies": {
-    "@codemirror/language": "^6.12.4",
+    "@codemirror/language": "^6.13.1",
     "@lezer/highlight": "^1.2.5",
     "@standardnotes/editor-kit": "github:standardnotes/editor-kit#626d7a6e63d4ada48be36676c466fea46d7709d3",
     "@standardnotes/stylekit": "^5.29.3",
