@@ -12,6 +12,9 @@
     border: 1px solid var(--sn-stylekit-border-color);
     border-radius: 8px;
     padding: 8px;
+    /* Match the source editor next to it; the body default is two steps
+     * smaller and read as a different scale. */
+    font-size: var(--sn-stylekit-font-size-editor);
 
     .variables-panel {
       margin-bottom: 12px;
