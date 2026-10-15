@@ -114,9 +114,11 @@ GET https://jsonplaceholder.typicode.com/posts/1
   its body) for chaining: once it runs, later requests can interpolate
   `{{login.response.body.$.field}}` (a JSONPath subset: `$`, `.field`,
   `[index]`, `[*]`) and `{{login.response.headers.X-Token}}` from the recorded
-  response. References resolve at run time and are never saved into the note.
-  Because `response` and `request` mark a chaining reference, an environment
-  cannot be named `response` or `request`
+  response, or `{{login.request.body}}` and `{{login.request.headers.X}}` from
+  the request as it was sent (variables already resolved). References resolve
+  at run time and are never saved into the note. Because `response` and
+  `request` mark a chaining reference, an environment cannot be named
+  `response` or `request`
 - Dynamic variables are generated on every run, never saved:
   `{{$uuid}}`, `{{$timestamp}}` (unix seconds), `{{$randomInt 1 10}}`
   (inclusive) and `{{$datetime}}` or `{{$datetime rfc1123}}` (iso8601 by

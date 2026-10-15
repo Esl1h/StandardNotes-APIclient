@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Block from './Block';
 import { executeRequest, type ExecutionResult } from '../lib/executor';
 import { type HttpRequest } from '../lib/parser';
-import { forgetResponses, getResponse, recordResponse } from '../lib/chaining';
+import { getRequest, getResponse, recordResponse, resetChaining } from '../lib/chaining';
 
 vi.mock('../lib/executor', () => ({ executeRequest: vi.fn() }));
 const executeMock = vi.mocked(executeRequest);
@@ -30,7 +30,7 @@ beforeEach(() => {
   // jsdom has no object URL support.
   URL.createObjectURL = vi.fn(() => 'blob:preview');
   URL.revokeObjectURL = vi.fn();
-  forgetResponses();
+  resetChaining();
 });
 
 describe('Block', () => {
@@ -90,6 +90,38 @@ describe('Block', () => {
     await waitFor(() => expect(getResponse('login')).toBeDefined());
 
     expect(getResponse('login')?.body).toBe('{"token": "secret-token"}');
+  });
+
+  it('records the sent request, after run-time resolution, of a named request', async () => {
+    executeMock.mockResolvedValue({
+      response: {
+        status: 200,
+        timeMs: 1,
+        sizeBytes: 10,
+        sizeIsDecoded: true,
+        headers: {},
+        body: 'ok',
+      },
+    });
+    render(
+      <Block
+        request={{
+          ...request,
+          name: 'echo',
+          body: 'id={{$randomInt 1 1}}',
+          headers: { 'X-Trace': '{{ghost.response.body.$.t}}' },
+        }}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+    await waitFor(() => expect(getRequest('echo')).toBeDefined());
+
+    expect(getRequest('echo')?.body).toBe('id=1');
+    // Unresolvable references stay literal in the sent request.
+    expect(getRequest('echo')?.headers['X-Trace']).toBe('{{ghost.response.body.$.t}}');
   });
 
   it('warns about headers the browser will not send', () => {

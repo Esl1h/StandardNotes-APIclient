@@ -2,16 +2,25 @@
  * Run-time resolution of chained references: a request labeled with
  * `# @name <label>` records its response here, and later requests resolve
  * `{{label.response.body.$.field}}` and `{{label.response.headers.X}}`
- * against it. The parser leaves these references literal, so each execution
- * resolves from the response that is current at that moment; nothing is ever
- * written back into the note.
+ * against it, plus `{{label.request.body}}` and `{{label.request.headers.X}}`
+ * against the request as it was sent. The parser leaves these references
+ * literal, so each execution resolves from what is current at that moment;
+ * nothing is ever written back into the note.
  */
 
 import { CHAIN_REF, type HttpRequest } from './parser';
 import { type HTTPResponse } from './types';
 
-// The registry lives as long as the editor; responses are volatile by design.
+/** A sent request, as {{label.request.*}} references read it. */
+interface ChainRequest {
+  body?: string;
+  headers: Record<string, string>;
+}
+
+// The registries live as long as the editor; their content is volatile by
+// design.
 const responses = new Map<string, HTTPResponse>();
+const requests = new Map<string, ChainRequest>();
 
 /** Records (or overwrites) the response of a labeled request. */
 function recordResponse(name: string, response: HTTPResponse): void {
@@ -23,9 +32,20 @@ function getResponse(name: string): HTTPResponse | undefined {
   return responses.get(name);
 }
 
-/** Drops every recorded response (test isolation). */
-function forgetResponses(): void {
+/** Records (or overwrites) the sent request of a labeled request. */
+function recordRequest(name: string, request: ChainRequest): void {
+  requests.set(name, request);
+}
+
+/** Reads a recorded sent request, by request label. */
+function getRequest(name: string): ChainRequest | undefined {
+  return requests.get(name);
+}
+
+/** Drops every recorded response and sent request (test isolation). */
+function resetChaining(): void {
   responses.clear();
+  requests.clear();
 }
 
 /** Tokens of a JSONPath subset: `$`, `.field`, `[index]` and `[*]`. */
@@ -90,22 +110,25 @@ function getPath(root: unknown, path: string): unknown {
   return tokens === null ? undefined : applyTokens(root, tokens);
 }
 
-/** A path from a response body as request text; undefined when not JSON or missing. */
-function bodyPath(response: HTTPResponse, path: string): string | undefined {
+/** A path from a body as request text; undefined when not JSON or missing. */
+function bodyPath(source: { body?: string }, path: string): string | undefined {
+  if (source.body === undefined) {
+    return undefined;
+  }
   let parsed: unknown;
   try {
-    parsed = JSON.parse(response.body);
+    parsed = JSON.parse(source.body);
   } catch {
     return undefined;
   }
   return stringifyValue(getPath(parsed, path));
 }
 
-/** A response header value, by any letter case; undefined when absent. */
-function headerValue(response: HTTPResponse, name: string): string | undefined {
+/** A header value, by any letter case; undefined when absent. */
+function headerValue(source: { headers: Record<string, string> }, name: string): string | undefined {
   const wanted = name.toLowerCase();
-  const found = Object.keys(response.headers).find((key) => key.toLowerCase() === wanted);
-  return found ? response.headers[found] : undefined;
+  const found = Object.keys(source.headers).find((key) => key.toLowerCase() === wanted);
+  return found ? source.headers[found] : undefined;
 }
 
 /** A JSONPath value as request text; undefined when the path found nothing. */
@@ -125,19 +148,19 @@ function stringifyValue(value: unknown): string | undefined {
  */
 function resolveChaining(text: string): string {
   return text.replace(CHAIN_REF, (match, name: string, kind: string, path: string) => {
-    const response = responses.get(name);
-    if (!response || kind !== 'response') {
+    const source = kind === 'response' ? responses.get(name) : requests.get(name);
+    if (!source) {
       return match;
     }
     if (path === 'body') {
-      return response.body;
+      return source.body ?? match;
     }
     if (path.startsWith('body.')) {
-      const value = bodyPath(response, path.slice('body.'.length));
+      const value = bodyPath(source, path.slice('body.'.length));
       return value === undefined ? match : value;
     }
     if (path.startsWith('headers.')) {
-      const value = headerValue(response, path.slice('headers.'.length));
+      const value = headerValue(source, path.slice('headers.'.length));
       return value === undefined ? match : value;
     }
     return match;
@@ -162,7 +185,9 @@ function resolveChainedRequest(request: HttpRequest): HttpRequest {
 export {
   recordResponse,
   getResponse,
-  forgetResponses,
+  recordRequest,
+  getRequest,
+  resetChaining,
   resolveChaining,
   resolveChainedRequest,
   bodyPath,

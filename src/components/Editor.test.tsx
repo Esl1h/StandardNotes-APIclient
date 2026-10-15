@@ -4,7 +4,7 @@ import { EditorView } from '@codemirror/view';
 import { undo } from '@codemirror/commands';
 import { type EditorKitDelegate } from '@standardnotes/editor-kit';
 import { executeRequest } from '../lib/executor';
-import { forgetResponses } from '../lib/chaining';
+import { resetChaining } from '../lib/chaining';
 import Editor from './Editor';
 
 vi.mock('../lib/executor', () => ({ executeRequest: vi.fn() }));
@@ -33,7 +33,7 @@ afterEach(() => {
 beforeEach(() => {
   executeMock.mockReset();
   executeMock.mockResolvedValue({});
-  forgetResponses();
+  resetChaining();
 });
 
 /**

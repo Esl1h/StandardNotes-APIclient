@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  forgetResponses,
+  getRequest,
   getResponse,
+  recordRequest,
   recordResponse,
+  resetChaining,
   resolveChainedRequest,
   resolveChaining,
 } from './chaining';
@@ -21,7 +23,7 @@ const okResponse = {
 };
 
 beforeEach(() => {
-  forgetResponses();
+  resetChaining();
 });
 
 describe('resolveChaining', () => {
@@ -82,11 +84,45 @@ describe('resolveChaining', () => {
     );
   });
 
-  it('keeps a .request reference literal', () => {
+  it('keeps a .request reference literal without a recorded sent request', () => {
     recordResponse('login', okResponse);
 
     expect(resolveChaining('{{login.request.body.$.token}}')).toBe(
       '{{login.request.body.$.token}}'
+    );
+  });
+});
+
+describe('resolveChaining over sent requests', () => {
+  it('resolves a body path from the recorded sent request', () => {
+    recordRequest('login', { headers: {}, body: '{"user": "alice"}' });
+
+    expect(resolveChaining('{{login.request.body.$.user}}')).toBe('alice');
+  });
+
+  it('returns the whole sent body for a bare request body reference', () => {
+    recordRequest('login', { headers: {}, body: 'plain payload' });
+
+    expect(resolveChaining('{{login.request.body}}')).toBe('plain payload');
+  });
+
+  it('resolves sent request headers case-insensitively', () => {
+    recordRequest('login', { headers: { 'Content-Type': 'application/json' } });
+
+    expect(resolveChaining('{{login.request.headers.content-type}}')).toBe('application/json');
+  });
+
+  it('keeps a body reference literal when the request has no body', () => {
+    recordRequest('login', { headers: {} });
+
+    expect(resolveChaining('{{login.request.body}}')).toBe('{{login.request.body}}');
+  });
+
+  it('keeps the reference literal when the sent body is not JSON', () => {
+    recordRequest('login', { headers: {}, body: 'not json' });
+
+    expect(resolveChaining('{{login.request.body.$.user}}')).toBe(
+      '{{login.request.body.$.user}}'
     );
   });
 });
@@ -137,5 +173,31 @@ describe('response registry', () => {
 
     expect(getResponse('login')).toBe(okResponse);
     expect(getResponse('ghost')).toBeUndefined();
+  });
+});
+
+describe('sent request registry', () => {
+  it('overwrites the sent request of a re-run request', () => {
+    recordRequest('login', { headers: {}, body: 'one' });
+    recordRequest('login', { headers: {}, body: 'two' });
+
+    expect(resolveChaining('{{login.request.body}}')).toBe('two');
+  });
+
+  it('getRequest reads the registry', () => {
+    recordRequest('login', { headers: { Accept: '*/*' } });
+
+    expect(getRequest('login')).toEqual({ headers: { Accept: '*/*' } });
+    expect(getRequest('ghost')).toBeUndefined();
+  });
+
+  it('resetChaining empties both registries', () => {
+    recordResponse('login', okResponse);
+    recordRequest('login', { headers: {}, body: 'one' });
+
+    resetChaining();
+
+    expect(getResponse('login')).toBeUndefined();
+    expect(getRequest('login')).toBeUndefined();
   });
 });

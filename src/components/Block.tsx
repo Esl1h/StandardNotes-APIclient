@@ -1,7 +1,7 @@
 import React from 'react';
 import { type HttpRequest, unresolvedVariables } from '../lib/parser';
 import { executeRequest, type ExecutionResult } from '../lib/executor';
-import { recordResponse, resolveChainedRequest } from '../lib/chaining';
+import { recordRequest, recordResponse, resolveChainedRequest } from '../lib/chaining';
 import { resolveDynamicRequest } from '../lib/dynamicVars';
 import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
 import { evaluateAssert } from '../lib/asserts';
@@ -82,10 +82,11 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
       binaryUrl: null,
       showFullBody: false,
     });
-    // Chained references resolve from responses recorded by earlier runs;
-    // dynamic variables are generated fresh on every execution. Neither is
-    // ever written back into the note.
-    return executeRequest(resolveDynamicRequest(resolveChainedRequest(this.props.request)), {
+    // Chained references resolve from responses and sent requests recorded
+    // by earlier runs; dynamic variables are generated fresh on every
+    // execution. Neither is ever written back into the note.
+    const sent = resolveDynamicRequest(resolveChainedRequest(this.props.request));
+    return executeRequest(sent, {
       signal: controller.signal,
     }).then((result) => {
       // A newer run owns the state; this stale result must not overwrite it.
@@ -94,6 +95,8 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
       }
       const { request } = this.props;
       if (request.name && result.response) {
+        // The request as it was sent feeds {{name.request.*}} references.
+        recordRequest(request.name, sent);
         recordResponse(request.name, result.response);
       }
       this.setState({
