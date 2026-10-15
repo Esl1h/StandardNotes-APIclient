@@ -135,6 +135,9 @@ GET https://jsonplaceholder.typicode.com/posts/1
 - `Copy as cURL` on a block copies it as a `curl` command line, with the
   variables already resolved and every value shell-quoted; `Copy as HTTPie`
   does the same as an `http` command line
+- `Copy OpenAPI` copies every request in the note as an OpenAPI 3.1
+  document: one operation per block, with the query string and headers as
+  parameters and the body as an example
 - Blocks receive the keyboard focus: `Tab` reaches them, `ArrowUp`/`ArrowDown`
   move between them and `Enter`/`Space` select one, scrolling the source to it
 - `Run all` runs every request in file order, waiting for each one so a

@@ -206,6 +206,26 @@ describe('Editor', () => {
     );
   });
 
+  it('copies every request as an OpenAPI document', () => {
+    const writeText = vi.fn();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      writable: true,
+      configurable: true,
+    });
+    const { loadNote } = setup();
+    loadNote('### Cats\nGET https://a.example/cats?limit=10\n');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy OpenAPI' }));
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const doc = JSON.parse(writeText.mock.calls[0][0] as string);
+    expect(doc.paths['/cats'].get.summary).toBe('Cats');
+    expect(doc.paths['/cats'].get.parameters).toEqual([
+      { name: 'limit', in: 'query', schema: { type: 'string' } },
+    ]);
+  });
+
   it('keeps a block mounted, and its response with it, when lines are added above', () => {
     const { container, loadNote, getView } = setup();
     loadNote('### One\nGET https://a.example\n\n### Two\nGET https://b.example\n');

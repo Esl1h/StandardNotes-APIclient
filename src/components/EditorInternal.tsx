@@ -7,6 +7,7 @@ import Block from './Block';
 import VariablesPanel from './VariablesPanel';
 import { type EditorInternalInterface } from '../lib/types';
 import { httpEditorTheme, httpHighlightExtensions } from '../lib/httpHighlight';
+import { toOpenApi } from '../lib/openapi';
 import { resetChaining } from '../lib/chaining';
 import { DEFAULT_SPLIT_PCT, clampSplitPct, readSplitPct, writeSplitPct } from '../lib/layout';
 
@@ -238,6 +239,13 @@ function EditorInternal(props: EditorInternalInterface) {
       <div className="requests-list">
         {httpFile.requests.length > 0 && (
           <div className="run-all-row">
+            <button
+              className="copy-openapi"
+              onClick={() => navigator.clipboard?.writeText(toOpenApi(httpFile))}
+              title="Copy every request in this note as an OpenAPI 3.1 document"
+            >
+              Copy OpenAPI
+            </button>
             <button className="run-all" onClick={() => void runAll()} disabled={runningAll}>
               {runningAll ? 'Running all...' : 'Run all'}
             </button>
