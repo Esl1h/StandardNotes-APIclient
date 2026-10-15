@@ -87,6 +87,11 @@ async function executeRequest(
     const hasContentLength =
       headers['content-length'] !== undefined && Number.isFinite(contentLength);
 
+    // fetch follows redirects silently; surface where it ended up, since a
+    // 200 from the wrong endpoint is a classic debugging dead end.
+    const redirectedTo =
+      response.url && response.url !== request.url ? response.url : undefined;
+
     return {
       response: {
         status: response.status,
@@ -95,6 +100,7 @@ async function executeRequest(
         sizeIsDecoded: !hasContentLength,
         headers,
         body: text,
+        ...(redirectedTo && { redirectedTo }),
         ...(binary && { binary }),
       },
     };

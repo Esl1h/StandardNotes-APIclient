@@ -10,6 +10,8 @@ interface HTTPResponse {
   headers: Record<string, string>;
   /** Decoded text body; empty for binary responses, which are kept in `binary` */
   body: string;
+  /** Final URL after redirects; set only when it differs from the sent one */
+  redirectedTo?: string;
   /** Raw bytes of an image, PDF or other non-text response */
   binary?: { blob: Blob; contentType: string };
 }

@@ -8,10 +8,16 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
-function makeResponse(body: string, status: number, headers: Array<[string, string]> = []) {
+function makeResponse(
+  body: string,
+  status: number,
+  headers: Array<[string, string]> = [],
+  url = ''
+) {
   const headerMap = new Map(headers);
   return {
     status,
+    url,
     text: async () => body,
     headers: {
       forEach: (callback: (value: string, name: string) => void) =>
@@ -59,6 +65,32 @@ describe('executeRequest', () => {
     expect(response?.body).toBe('{"ok": true}');
     expect(response?.sizeBytes).toBe(12);
     expect(response?.timeMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it('reports the final URL when the request was redirected', async () => {
+    fetchMock.mockResolvedValue(
+      makeResponse('ok', 200, [], 'https://example.com/final.html')
+    );
+
+    const { response } = await executeRequest({
+      method: 'GET',
+      url: 'https://example.com/start',
+      headers: {},
+    });
+
+    expect(response?.redirectedTo).toBe('https://example.com/final.html');
+  });
+
+  it('omits the final URL when nothing redirected', async () => {
+    fetchMock.mockResolvedValue(makeResponse('ok', 200, [], 'https://example.com/ok'));
+
+    const { response } = await executeRequest({
+      method: 'GET',
+      url: 'https://example.com/ok',
+      headers: {},
+    });
+
+    expect(response?.redirectedTo).toBeUndefined();
   });
 
   it.each(['GET', 'HEAD', 'get'])('never sends a body with %s', async (method) => {

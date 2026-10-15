@@ -356,6 +356,37 @@ describe('Block', () => {
     expect(screen.getByText(label)).toBeInTheDocument();
   });
 
+  it('shows the final URL after a redirect', async () => {
+    await runBlock({
+      response: {
+        status: 200,
+        timeMs: 5,
+        sizeBytes: 10,
+        sizeIsDecoded: false,
+        headers: {},
+        body: 'ok',
+        redirectedTo: 'https://example.com/final',
+      },
+    });
+
+    expect(screen.getByText('→ https://example.com/final')).toBeInTheDocument();
+  });
+
+  it('shows no redirect note without a redirect', async () => {
+    await runBlock({
+      response: {
+        status: 200,
+        timeMs: 5,
+        sizeBytes: 10,
+        sizeIsDecoded: false,
+        headers: {},
+        body: 'ok',
+      },
+    });
+
+    expect(screen.queryByText(/→/)).not.toBeInTheDocument();
+  });
+
   describe('large responses', () => {
     const textResponse = (body: string): ExecutionResult => ({
       response: {

@@ -260,6 +260,13 @@
         gap: 12px;
         color: var(--sn-stylekit-neutral-color);
 
+        .redirected {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
         .status.ok {
           color: var(--sn-stylekit-success-color);
         }

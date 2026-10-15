@@ -250,6 +250,14 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               >
                 {response.sizeBytes} B{response.sizeIsDecoded ? ' (decoded)' : ''}
               </span>
+              {response.redirectedTo && (
+                <span
+                  className="redirected"
+                  title={`The request followed redirects; this is the final URL (sent: ${request.url})`}
+                >
+                  → {response.redirectedTo}
+                </span>
+              )}
               {!response.binary && (
                 <button
                   className="copy-body"
