@@ -403,6 +403,15 @@ describe('Block', () => {
       expect(screen.queryByRole('button', { name: /show all/i })).not.toBeInTheDocument();
     });
 
+    it('does not split a surrogate pair at the cut', async () => {
+      // The 200000th code unit is the high half of the emoji.
+      await runBlock(textResponse('a'.repeat(199_999) + '\u{1F600}' + 'b'.repeat(5)));
+
+      expect(shown()).toHaveLength(199_999);
+      expect(shown().endsWith('a')).toBe(true);
+      expect(shown()).not.toContain('\uFFFD');
+    });
+
     it('caps again on the next run', async () => {
       await runBlock(textResponse('x'.repeat(300_000)));
       fireEvent.click(screen.getByRole('button', { name: /show all/i }));

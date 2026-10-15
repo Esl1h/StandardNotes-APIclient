@@ -13,6 +13,14 @@ import { type HTTPError, type HTTPResponse } from '../lib/types';
  * multi-megabyte <pre> freezes a WebView. */
 const DISPLAY_LIMIT = 200_000;
 
+/** `text` up to `limit` UTF-16 code units, never splitting a surrogate
+ * pair: a lone half at the cut would render as a replacement character. */
+function capText(text: string, limit: number): string {
+  const slice = text.slice(0, limit);
+  const last = slice.charCodeAt(slice.length - 1);
+  return last >= 0xd800 && last <= 0xdbff ? slice.slice(0, -1) : slice;
+}
+
 interface BlockProperties {
   request: HttpRequest;
   /** True while the caret inside the source sits on this request */
@@ -310,7 +318,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
             ) : (
               <>
                 <pre className="response-body">
-                  {bodyCapped ? bodyText.slice(0, DISPLAY_LIMIT) : bodyText}
+                  {bodyCapped ? capText(bodyText, DISPLAY_LIMIT) : bodyText}
                 </pre>
                 {bodyCapped && (
                   <button
