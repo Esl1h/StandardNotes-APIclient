@@ -6,6 +6,7 @@ import { resolveDynamicRequest } from '../lib/dynamicVars';
 import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
 import { evaluateAssert } from '../lib/asserts';
 import { toCurl } from '../lib/curl';
+import { toHttpie } from '../lib/httpie';
 import { prettyPrintBody } from '../lib/prettyPrint';
 import { type HTTPError, type HTTPResponse } from '../lib/types';
 
@@ -225,6 +226,16 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
             title="Copy this request as a cURL command (with the variables already resolved)"
           >
             Copy as cURL
+          </button>
+          <button
+            className="copy-cmd"
+            onClick={(event) => {
+              event.stopPropagation();
+              navigator.clipboard?.writeText(toHttpie(request));
+            }}
+            title="Copy this request as an HTTPie command (with the variables already resolved)"
+          >
+            Copy as HTTPie
           </button>
         </div>
         {ignoredHeaders.length > 0 && (

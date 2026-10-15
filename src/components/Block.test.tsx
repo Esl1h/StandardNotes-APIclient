@@ -278,6 +278,28 @@ describe('Block', () => {
     );
   });
 
+  it('copies the request as an HTTPie command', () => {
+    const writeText = vi.fn();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      writable: true,
+      configurable: true,
+    });
+    render(
+      <Block
+        request={{ ...request, method: 'POST', body: '{"a": 1}' }}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as HTTPie' }));
+
+    expect(writeText).toHaveBeenCalledWith(
+      "http POST 'https://example.com/ping' --raw '{\"a\": 1}'"
+    );
+  });
+
   it('moves the focus between blocks with the arrow keys', () => {
     render(
       <div>

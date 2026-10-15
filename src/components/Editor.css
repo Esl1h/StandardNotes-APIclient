@@ -226,8 +226,8 @@
         white-space: nowrap;
       }
 
-      .copy-curl {
-        margin-left: auto;
+      .copy-curl,
+      .copy-cmd {
         background: none;
         border: 1px solid var(--sn-stylekit-border-color);
         border-radius: 4px;
@@ -235,6 +235,11 @@
         color: var(--sn-stylekit-neutral-color);
         cursor: pointer;
         white-space: nowrap;
+      }
+
+      /* The first export button hugs the right edge; the next follows it. */
+      .copy-curl {
+        margin-left: auto;
       }
     }
 

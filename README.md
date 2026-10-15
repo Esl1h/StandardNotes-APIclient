@@ -133,7 +133,8 @@ GET https://jsonplaceholder.typicode.com/posts/1
   images are previewed and any binary response can be downloaded
 - `Ctrl/Cmd+Enter` in the source runs the request under the caret
 - `Copy as cURL` on a block copies it as a `curl` command line, with the
-  variables already resolved and every value shell-quoted
+  variables already resolved and every value shell-quoted; `Copy as HTTPie`
+  does the same as an `http` command line
 - Blocks receive the keyboard focus: `Tab` reaches them, `ArrowUp`/`ArrowDown`
   move between them and `Enter`/`Space` select one, scrolling the source to it
 - `Run all` runs every request in file order, waiting for each one so a
