@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   getRequest,
   getResponse,
+  MAX_RECORDED_BODY,
   recordRequest,
   recordResponse,
   resetChaining,
@@ -199,5 +200,25 @@ describe('sent request registry', () => {
 
     expect(getResponse('login')).toBeUndefined();
     expect(getRequest('login')).toBeUndefined();
+  });
+
+  it('caps an oversized recorded body without mutating the original', () => {
+    const huge = { ...okResponse, body: 'x'.repeat(MAX_RECORDED_BODY + 10) };
+
+    recordResponse('big', huge);
+
+    expect(getResponse('big')?.body).toHaveLength(MAX_RECORDED_BODY);
+    expect(huge.body).toHaveLength(MAX_RECORDED_BODY + 10);
+    // A JSONPath past the cut no longer resolves.
+    expect(resolveChaining('{{big.response.body.$.token}}')).toBe(
+      '{{big.response.body.$.token}}'
+    );
+  });
+
+  it('caps an oversized recorded request body', () => {
+    recordRequest('big', { headers: {}, body: 'y'.repeat(MAX_RECORDED_BODY + 1) });
+
+    expect(getRequest('big')?.body).toHaveLength(MAX_RECORDED_BODY);
+    expect(resolveChaining('{{big.request.body}}')).toHaveLength(MAX_RECORDED_BODY);
   });
 });

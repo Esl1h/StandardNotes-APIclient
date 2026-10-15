@@ -18,13 +18,27 @@ interface ChainRequest {
 }
 
 // The registries live as long as the editor; their content is volatile by
-// design.
+// design. Recorded bodies are capped so a few huge responses cannot grow
+// them without bound; a path that only exists past the cut stops resolving
+// and its reference stays literal.
 const responses = new Map<string, HTTPResponse>();
 const requests = new Map<string, ChainRequest>();
 
+/** Bodies kept per recorded response or sent request, in UTF-16 units. */
+const MAX_RECORDED_BODY = 512 * 1024;
+
+/** The source with its body capped; the original object is never mutated,
+ * since the caller still displays it. */
+function capBody<T extends { body?: string }>(source: T): T {
+  if (source.body === undefined || source.body.length <= MAX_RECORDED_BODY) {
+    return source;
+  }
+  return { ...source, body: source.body.slice(0, MAX_RECORDED_BODY) };
+}
+
 /** Records (or overwrites) the response of a labeled request. */
 function recordResponse(name: string, response: HTTPResponse): void {
-  responses.set(name, response);
+  responses.set(name, capBody(response));
 }
 
 /** Reads a recorded response, by request label. */
@@ -34,7 +48,7 @@ function getResponse(name: string): HTTPResponse | undefined {
 
 /** Records (or overwrites) the sent request of a labeled request. */
 function recordRequest(name: string, request: ChainRequest): void {
-  requests.set(name, request);
+  requests.set(name, capBody(request));
 }
 
 /** Reads a recorded sent request, by request label. */
@@ -183,6 +197,7 @@ function resolveChainedRequest(request: HttpRequest): HttpRequest {
 }
 
 export {
+  MAX_RECORDED_BODY,
   recordResponse,
   getResponse,
   recordRequest,
