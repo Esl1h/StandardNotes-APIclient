@@ -29,5 +29,14 @@ export default defineConfig({
     setupFiles: './src/setupTests.ts',
     // e2e/ specs belong to Playwright, not to Vitest.
     include: ['src/**/*.test.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/lib/**', 'src/components/**'],
+      // Demo wiring and the error-boundary fallback are exercised by the
+      // e2e suite, not the unit tests.
+      exclude: ['src/demo.tsx', 'src/**/*.test.*'],
+      reporter: ['text', 'json-summary'],
+      reportsDirectory: './coverage',
+    },
   },
 });
