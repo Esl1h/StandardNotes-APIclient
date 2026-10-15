@@ -88,6 +88,9 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     const sent = resolveDynamicRequest(resolveChainedRequest(this.props.request));
     return executeRequest(sent, {
       signal: controller.signal,
+      ...(this.props.request.timeoutMs !== undefined
+        ? { timeoutMs: this.props.request.timeoutMs }
+        : {}),
     }).then((result) => {
       // A newer run owns the state; this stale result must not overwrite it.
       if (this.abortController !== controller) {

@@ -123,6 +123,8 @@ GET https://jsonplaceholder.typicode.com/posts/1
   `{{$uuid}}`, `{{$timestamp}}` (unix seconds), `{{$randomInt 1 10}}`
   (inclusive) and `{{$datetime}}` or `{{$datetime rfc1123}}` (iso8601 by
   default)
+- `# @timeout 5000` overrides the default 30 s timeout for one request, in
+  milliseconds
 - The variable list masks the value of names containing `token`, `secret`,
   `key`, `password` or `auth` until you press `show`; `copy` always copies
   the real value

@@ -198,6 +198,27 @@ describe('Block', () => {
     );
   });
 
+  it('passes a request timeout to the executor and omits it when unset', async () => {
+    executeMock.mockResolvedValue({});
+    render(<Block request={{ ...request, timeoutMs: 2500 }} active={false} onSelect={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+    await waitFor(() => expect(executeMock).toHaveBeenCalledTimes(1));
+    expect(executeMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ timeoutMs: 2500 })
+    );
+
+    render(<Block request={request} active={false} onSelect={() => {}} />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Run' })[1]);
+
+    await waitFor(() => expect(executeMock).toHaveBeenCalledTimes(2));
+    expect(executeMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.not.objectContaining({ timeoutMs: expect.anything() })
+    );
+  });
+
   it('shows one pass/fail mark per assert after a response', async () => {
     await runBlock(
       {

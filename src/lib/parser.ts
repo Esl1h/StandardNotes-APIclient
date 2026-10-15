@@ -14,6 +14,7 @@
  * - Active environment declaration: @env = <environment>
  * - Interpolation of {{variable}} and {{variable.env}} in urls, headers,
  *   bodies and variables
+ * - Per-request timeout: # @timeout <milliseconds>
  */
 
 interface HttpRequest {
@@ -23,6 +24,9 @@ interface HttpRequest {
   name?: string;
   /** Raw # @assert expressions, evaluated against the run-time response */
   asserts?: string[];
+  /** From a # @timeout directive, in milliseconds; the executor default
+   * applies when unset */
+  timeoutMs?: number;
   method: string;
   url: string;
   headers: Record<string, string>;
@@ -67,6 +71,9 @@ const NAME_LINE = /^#\s*@name\s+([A-Za-z0-9_-]+)\s*$/;
 // # @assert status == 200: kulala-style assertion kept as raw text and
 // evaluated against the response at run time; never inside a body.
 const ASSERT_LINE = /^#\s*@assert\s+(.+)$/;
+// # @timeout 5000: per-request timeout in milliseconds; positive integers
+// only, anything else is a plain comment.
+const TIMEOUT_LINE = /^#\s*@timeout\s+([1-9]\d*)\s*$/;
 const ENV_DECLARATION_LINE = /^@env(?:\s*=\s*([A-Za-z0-9_-]+))?\s*$/m;
 
 type VariableLookup = (ref: string) => string | undefined;
@@ -248,6 +255,7 @@ function parseHttpFile(text: string): HttpFile {
   let currentRequest: HttpRequest | null = null;
   let pendingName: string | null = null;
   let pendingAsserts: string[] = [];
+  let pendingTimeoutMs: number | undefined;
   let sawHeaderOrRequest = false;
   let bodyLines: string[] | null = null;
 
@@ -263,6 +271,7 @@ function parseHttpFile(text: string): HttpFile {
       currentRequest = null;
       pendingName = null;
       pendingAsserts = [];
+      pendingTimeoutMs = undefined;
       bodyLines = null;
       sawHeaderOrRequest = false;
       continue;
@@ -287,8 +296,8 @@ function parseHttpFile(text: string): HttpFile {
     // Comment lines are only meaningful outside a request body.
     if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
       // A # @name line labels the next request (or the current one, before
-      // its body) for chaining references; a # @assert line adds an
-      // assertion to it the same way.
+      // its body) for chaining references; # @assert and # @timeout lines
+      // attach to it the same way.
       const nameMatch = line.match(NAME_LINE);
       if (nameMatch) {
         if (currentRequest && !bodyLines) {
@@ -305,6 +314,16 @@ function parseHttpFile(text: string): HttpFile {
           currentRequest.asserts = [...(currentRequest.asserts ?? []), source];
         } else if (!currentRequest) {
           pendingAsserts = [...pendingAsserts, source];
+        }
+        continue;
+      }
+      const timeoutMatch = line.match(TIMEOUT_LINE);
+      if (timeoutMatch) {
+        const timeoutMs = Number(timeoutMatch[1]);
+        if (currentRequest && !bodyLines) {
+          currentRequest.timeoutMs = timeoutMs;
+        } else if (!currentRequest) {
+          pendingTimeoutMs = timeoutMs;
         }
       }
       continue;
@@ -333,6 +352,7 @@ function parseHttpFile(text: string): HttpFile {
           title: currentTitle || url,
           ...(pendingName ? { name: pendingName } : {}),
           ...(pendingAsserts.length > 0 ? { asserts: pendingAsserts } : {}),
+          ...(pendingTimeoutMs !== undefined ? { timeoutMs: pendingTimeoutMs } : {}),
           method,
           url,
           headers: {},
@@ -340,6 +360,7 @@ function parseHttpFile(text: string): HttpFile {
         };
         pendingName = null;
         pendingAsserts = [];
+        pendingTimeoutMs = undefined;
         requests.push(currentRequest);
         sawHeaderOrRequest = true;
         bodyLines = null;

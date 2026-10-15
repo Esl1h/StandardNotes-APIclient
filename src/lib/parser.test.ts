@@ -498,6 +498,44 @@ describe('parseHttpFile', () => {
       expect(file.requests[0].asserts).toEqual(['status == 200']);
       expect(file.requests[1].asserts).toBeUndefined();
     });
+
+    it('applies a # @timeout to the request it precedes', () => {
+      const file = parseHttpFile('### Slow\n# @timeout 2500\nGET https://example.com/a\n');
+
+      expect(file.requests[0].timeoutMs).toBe(2500);
+    });
+
+    it('applies a # @timeout after the request line, before the body', () => {
+      const file = parseHttpFile('GET https://example.com/a\n# @timeout 2500\nAccept: */*\n');
+
+      expect(file.requests[0].timeoutMs).toBe(2500);
+    });
+
+    it('keeps a # @timeout line inside a body as body text', () => {
+      const file = parseHttpFile('POST https://example.com\n\n# @timeout 2500\nbody\n');
+
+      expect(file.requests[0].timeoutMs).toBeUndefined();
+      expect(file.requests[0].body).toBe('# @timeout 2500\nbody');
+    });
+
+    it('does not carry a timeout into the next block', () => {
+      const file = parseHttpFile(
+        '# @timeout 2500\nGET https://a.example\n\n### B\nGET https://b.example\n'
+      );
+
+      expect(file.requests[0].timeoutMs).toBe(2500);
+      expect(file.requests[1].timeoutMs).toBeUndefined();
+    });
+
+    it('ignores malformed or non-positive timeouts', () => {
+      const file = parseHttpFile(
+        ['# @timeout 0', '# @timeout -5', '# @timeout abc', '# @timeout', 'GET https://a.example'].join(
+          '\n'
+        )
+      );
+
+      expect(file.requests[0].timeoutMs).toBeUndefined();
+    });
   });
 
   describe('chaining references', () => {
