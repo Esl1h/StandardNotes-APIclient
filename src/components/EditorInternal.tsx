@@ -7,6 +7,7 @@ import Block from './Block';
 import VariablesPanel from './VariablesPanel';
 import { type EditorInternalInterface } from '../lib/types';
 import { httpEditorTheme, httpHighlightExtensions } from '../lib/httpHighlight';
+import { resetChaining } from '../lib/chaining';
 import { DEFAULT_SPLIT_PCT, clampSplitPct, readSplitPct, writeSplitPct } from '../lib/layout';
 
 /** Marks transactions that sync the view with the prop, so they are not saved back. */
@@ -135,6 +136,10 @@ function EditorInternal(props: EditorInternalInterface) {
     if (appliedEpoch.current !== historyEpoch) {
       // A different note: start from a fresh state so undo cannot cross notes.
       appliedEpoch.current = historyEpoch;
+      // Labels do not cross notes either: a same-named request in the new
+      // note must not answer from the old one's recorded traffic, and the
+      // recorded bodies are pure memory.
+      resetChaining();
       view.setState(buildState(rawText));
       setCaretLine(null);
       return;

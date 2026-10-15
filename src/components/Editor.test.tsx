@@ -4,7 +4,7 @@ import { EditorView } from '@codemirror/view';
 import { undo } from '@codemirror/commands';
 import { type EditorKitDelegate } from '@standardnotes/editor-kit';
 import { executeRequest } from '../lib/executor';
-import { resetChaining } from '../lib/chaining';
+import { getResponse, resetChaining } from '../lib/chaining';
 import Editor from './Editor';
 
 vi.mock('../lib/executor', () => ({ executeRequest: vi.fn() }));
@@ -235,6 +235,28 @@ describe('Editor', () => {
 
     expect(getView().state.doc.toString()).toBe('GET https://note-b.example');
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it('drops recorded chaining data when the note changes', async () => {
+    const { loadNote } = setup();
+    loadNote('# @name login\nGET https://a.example\n');
+    executeMock.mockResolvedValue({
+      response: {
+        status: 200,
+        timeMs: 1,
+        sizeBytes: 1,
+        sizeIsDecoded: true,
+        headers: {},
+        body: '{"token": "t"}',
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+    await waitFor(() => expect(getResponse('login')).toBeDefined());
+
+    loadNote('GET https://other.example');
+
+    expect(getResponse('login')).toBeUndefined();
   });
 
   it('does not let undo revert a remote update of the same note', () => {
