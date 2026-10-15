@@ -126,6 +126,9 @@ GET https://jsonplaceholder.typicode.com/posts/1
   default)
 - `# @timeout 5000` overrides the default 30 s timeout for one request, in
   milliseconds
+- Multipart and GraphQL bodies get their own highlighting in the source:
+  boundary delimiters and part headers in a multipart body, and GraphQL
+  keywords, variables, strings and comments in a query body
 - The variable list masks the value of names containing `token`, `secret`,
   `key`, `password` or `auth` until you press `show`; `copy` always copies
   the real value

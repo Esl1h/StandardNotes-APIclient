@@ -140,4 +140,93 @@ describe('httpStreamParser follows the parser', () => {
   it('colors a comment before the first request', () => {
     expect(tokens('# real comment\nGET https://x')[0]).toEqual(['# real comment', 'comment']);
   });
+
+  it('colors multipart boundary and part-header lines', () => {
+    const text = [
+      'POST https://x.y/upload',
+      'Content-Type: multipart/form-data; boundary=X',
+      '',
+      '--X',
+      'Content-Disposition: form-data; name="a"',
+      '',
+      'value',
+      '--X--',
+    ].join('\n');
+    const styles = tokens(text);
+
+    expect(styles).toContainEqual(['--X', 'meta']);
+    expect(styles).toContainEqual(['--X--', 'meta']);
+    expect(styles).toContainEqual(['Content-Disposition:', 'propertyName']);
+    expect(styles).toContainEqual(['value', null]);
+  });
+
+  it('colors GraphQL keywords, variables and comments', () => {
+    const text = [
+      'POST https://x.y/graphql',
+      'Content-Type: application/json',
+      '',
+      'query Get($id: ID!) {',
+      '  cat(id: $id) { name }',
+      '  # a comment',
+      '}',
+    ].join('\n');
+    const styles = tokens(text);
+
+    expect(styles).toContainEqual(['query', 'keyword']);
+    expect(styles).toContainEqual(['cat(id:', null]);
+    expect(styles).toContainEqual(['$id', 'variableName']);
+    expect(styles).toContainEqual(['# a comment', 'comment']);
+  });
+
+  it('defers the body kind past a leading comment line', () => {
+    const text = [
+      'POST https://x.y',
+      'Content-Type: application/json',
+      '',
+      '# body comment',
+      'query Q { f }',
+    ].join('\n');
+    const styles = tokens(text);
+
+    // The leading comment stays plain body text and does not lock the
+    // block into plain: the query line below still decides GraphQL.
+    expect(styles).toContainEqual(['#', null]);
+    expect(styles).toContainEqual(['body comment', null]);
+    expect(styles).toContainEqual(['query', 'keyword']);
+  });
+
+  it('detects GraphQL from the content-type alone', () => {
+    const text = [
+      'POST https://x.y/graphql',
+      'Content-Type: application/graphql',
+      '',
+      'query Q { f }',
+    ].join('\n');
+
+    expect(tokens(text)).toContainEqual(['query', 'keyword']);
+  });
+
+  it('colors GraphQL block strings across lines', () => {
+    const text = [
+      'POST https://x.y/graphql',
+      'Content-Type: application/json',
+      '',
+      '"""',
+      'documentation text',
+      '"""',
+      'query Q { f }',
+    ].join('\n');
+    const styles = tokens(text);
+
+    expect(styles).toContainEqual(['"""', 'string']);
+    expect(styles).toContainEqual(['documentation text', 'string']);
+    expect(styles).toContainEqual(['query', 'keyword']);
+  });
+
+  it('keeps a JSON body plain', () => {
+    const styles = tokens('POST https://x.y\nContent-Type: application/json\n\n{"a": "b"}');
+
+    expect(styles).toContainEqual(['{"a":', null]);
+    expect(styles).not.toContainEqual(['{"a":', 'keyword']);
+  });
 });
