@@ -60,10 +60,12 @@ function operation(request: HttpRequest): Record<string, unknown> {
 
 /** The whole file as an OpenAPI 3.1 JSON document. */
 function toOpenApi(httpFile: HttpFile): string {
-  const paths: Record<string, Record<string, unknown>> = {};
+  // Null-prototype maps: the path and the method come from the note, and
+  // a "__proto__" key on a plain object would write to Object.prototype.
+  const paths: Record<string, Record<string, unknown>> = Object.create(null);
   for (const request of httpFile.requests) {
     const path = pathOf(request);
-    paths[path] ??= {};
+    paths[path] ??= Object.create(null);
     paths[path][request.method.toLowerCase()] = operation(request);
   }
   return JSON.stringify(

@@ -71,4 +71,12 @@ describe('toOpenApi', () => {
     expect(doc.openapi).toBe('3.1.0');
     expect(doc.info).toEqual({ title: 'Standard Notes API Client requests', version: '1.0.0' });
   });
+
+  it('keeps a __proto__ path a plain key, off the shared prototype', () => {
+    const doc = exported('CREDENTIALS __proto__\n###\nGET constructor\n');
+
+    expect(({} as Json).credentials).toBeUndefined();
+    expect(Object.getOwnPropertyNames(doc.paths)).toEqual(['__proto__', 'constructor']);
+    expect(doc.paths.constructor.get).toBeDefined();
+  });
 });
