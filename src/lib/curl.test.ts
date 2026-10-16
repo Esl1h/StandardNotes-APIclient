@@ -53,4 +53,8 @@ describe('toCurl', () => {
       "curl -X GET 'https://example.com/a'\\''b' -H 'X-Q: it'\\''s' --data-raw 'it'\\''s'"
     );
   });
+
+  it('passes a url that starts with "-" through --url, not as an option', () => {
+    expect(toCurl(request({ url: '-o/tmp/x' }))).toBe("curl -X GET --url '-o/tmp/x'");
+  });
 });
