@@ -214,8 +214,10 @@ The extension is hosted on GitHub Pages from the `gh-pages` branch, served
 at `https://esli.cafe/StandardNotes-APIclient/`. Releases are automated by
 the `Release` workflow:
 
-1. Bump the version in `package.json` and `public/ext.json` (also its
-   `download_url`) in one `chore(release)` commit. The `Release` workflow
+1. Bump the version in `package.json`, `package-lock.json` and
+   `public/ext.json` (also its `download_url`) in one `chore(release)`
+   commit, merged through a pull request (`main` is protected). The
+   `Release` workflow
    rewrites the version on the distributed `ext.json` (zip + Pages), so the
    desktop app updates automatically by comparing the version at
    `latest_url`; keeping the committed copy in sync avoids a misleading one.
