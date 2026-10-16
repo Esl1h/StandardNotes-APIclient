@@ -9,8 +9,10 @@ const FAILED_FETCH =
 
 // Content types whose bytes are not text. Anything unknown is read as text,
 // which is what the block can display; svg is text and stays on that side.
+// Anchored at both ends: the matched type becomes the Blob type behind the
+// preview and the download link, so it must be exactly one of these.
 const BINARY_CONTENT_TYPE =
-  /^(?:(?:image|audio|video|font)\/|application\/(?:pdf|octet-stream|zip|gzip|x-gzip|x-tar|x-7z-compressed|x-rar-compressed|msword|wasm|vnd\.(?:ms-|openxmlformats-)))/;
+  /^(?:(?:image|audio|video|font)\/[\w.+-]+|application\/(?:pdf|octet-stream|zip|gzip|x-gzip|x-tar|x-7z-compressed|x-rar-compressed|msword|wasm|vnd\.(?:ms-|openxmlformats-)[\w.+-]+))$/;
 
 /** True when a Content-Type header describes a response that is not text */
 function isBinaryContentType(contentType: string): boolean {
@@ -73,7 +75,7 @@ async function executeRequest(
     let decodedSize: number;
     if (isBinaryContentType(headers['content-type'] ?? '')) {
       const buffer = await response.arrayBuffer();
-      const contentType = headers['content-type'].split(';')[0].trim();
+      const contentType = headers['content-type'].split(';')[0].trim().toLowerCase();
       binary = { blob: new Blob([buffer], { type: contentType }), contentType };
       decodedSize = buffer.byteLength;
     } else {
