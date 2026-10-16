@@ -226,6 +226,20 @@ describe('Editor', () => {
     ]);
   });
 
+  it('confirms the OpenAPI copy on the button', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      writable: true,
+      configurable: true,
+    });
+    const { loadNote } = setup();
+    loadNote('### Cats\nGET https://a.example/cats\n');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy OpenAPI' }));
+
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+  });
+
   it('keeps a block mounted, and its response with it, when lines are added above', () => {
     const { container, loadNote, getView } = setup();
     loadNote('### One\nGET https://a.example\n\n### Two\nGET https://b.example\n');

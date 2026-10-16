@@ -8,6 +8,7 @@ import VariablesPanel from './VariablesPanel';
 import { type EditorInternalInterface } from '../lib/types';
 import { httpEditorTheme, httpHighlightExtensions } from '../lib/httpHighlight';
 import { toOpenApi } from '../lib/openapi';
+import { COPY_FEEDBACK_MS, copyText } from '../lib/clipboard';
 import { resetChaining } from '../lib/chaining';
 import { DEFAULT_SPLIT_PCT, clampSplitPct, readSplitPct, writeSplitPct } from '../lib/layout';
 
@@ -31,6 +32,10 @@ function EditorInternal(props: EditorInternalInterface) {
   const [splitPct, setSplitPct] = useState<number>(() => readSplitPct());
   const [dragging, setDragging] = useState(false);
   const [runningAll, setRunningAll] = useState(false);
+  // Outcome of the last Copy OpenAPI, shown on the button for a moment.
+  const [openApiCopied, setOpenApiCopied] = useState<boolean | null>(null);
+  const openApiCopiedTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(openApiCopiedTimer.current), []);
   // Block instances by index, for Mod-Enter (run the request under the
   // caret) and the Run all button.
   const blockRefs = useRef(new Map<number, InstanceType<typeof Block>>());
@@ -82,6 +87,13 @@ function EditorInternal(props: EditorInternalInterface) {
     } finally {
       setRunningAll(false);
     }
+  };
+
+  const copyOpenApi = async () => {
+    const ok = await copyText(toOpenApi(httpFile));
+    clearTimeout(openApiCopiedTimer.current);
+    setOpenApiCopied(ok);
+    openApiCopiedTimer.current = setTimeout(() => setOpenApiCopied(null), COPY_FEEDBACK_MS);
   };
 
   const buildState = useCallback(
@@ -241,10 +253,10 @@ function EditorInternal(props: EditorInternalInterface) {
           <div className="run-all-row">
             <button
               className="copy-openapi"
-              onClick={() => navigator.clipboard?.writeText(toOpenApi(httpFile))}
+              onClick={() => void copyOpenApi()}
               title="Copy every request in this note as an OpenAPI 3.1 document"
             >
-              Copy OpenAPI
+              {openApiCopied === null ? 'Copy OpenAPI' : openApiCopied ? 'Copied' : 'Copy failed'}
             </button>
             <button className="run-all" onClick={() => void runAll()} disabled={runningAll}>
               {runningAll ? 'Running all...' : 'Run all'}

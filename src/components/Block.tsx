@@ -7,6 +7,7 @@ import { findIgnoredHeaders } from '../lib/forbiddenHeaders';
 import { evaluateAssert } from '../lib/asserts';
 import { toCurl } from '../lib/curl';
 import { toHttpie } from '../lib/httpie';
+import { COPY_FEEDBACK_MS, copyText } from '../lib/clipboard';
 import { prettyPrintBody } from '../lib/prettyPrint';
 import { type HTTPError, type HTTPResponse } from '../lib/types';
 
@@ -42,7 +43,11 @@ interface BlockDriverState {
   binaryUrl: string | null;
   /** True once the user asked for a body longer than DISPLAY_LIMIT in full */
   showFullBody: boolean;
+  /** Outcome of the last copy, shown on its button for a moment */
+  copied: { target: CopyTarget; ok: boolean } | null;
 }
+
+type CopyTarget = 'curl' | 'httpie' | 'body';
 
 /** File name for a downloaded response: the last path segment of the url */
 function downloadName(url: string): string {
@@ -61,15 +66,23 @@ function downloadName(url: string): string {
  */
 class Block extends React.Component<BlockProperties, BlockDriverState> {
   abortController?: AbortController;
+  copiedTimer?: ReturnType<typeof setTimeout>;
 
   constructor(props: BlockProperties) {
     super(props);
-    this.state = { running: false, prettyBody: null, binaryUrl: null, showFullBody: false };
+    this.state = {
+      running: false,
+      prettyBody: null,
+      binaryUrl: null,
+      showFullBody: false,
+      copied: null,
+    };
   }
 
   componentWillUnmount() {
     this.abortController?.abort();
     this.releaseBinaryUrl();
+    clearTimeout(this.copiedTimer);
   }
 
   releaseBinaryUrl() {
@@ -162,10 +175,26 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     });
   };
 
+  copy = async (target: CopyTarget, text: string) => {
+    const ok = await copyText(text);
+    clearTimeout(this.copiedTimer);
+    this.setState({ copied: { target, ok } });
+    this.copiedTimer = setTimeout(() => this.setState({ copied: null }), COPY_FEEDBACK_MS);
+  };
+
+  /** The label of a copy button: the outcome right after a copy, else `idle` */
+  copyLabel(target: CopyTarget, idle: string): string {
+    const { copied } = this.state;
+    if (copied?.target !== target) {
+      return idle;
+    }
+    return copied.ok ? 'Copied' : 'Copy failed';
+  }
+
   copyBody = () => {
     const { response } = this.state;
     if (response) {
-      navigator.clipboard?.writeText(response.body);
+      void this.copy('body', response.body);
     }
   };
 
@@ -221,21 +250,21 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
             className="copy-curl"
             onClick={(event) => {
               event.stopPropagation();
-              navigator.clipboard?.writeText(toCurl(request));
+              void this.copy('curl', toCurl(request));
             }}
             title="Copy this request as a cURL command (with the variables already resolved)"
           >
-            Copy as cURL
+            {this.copyLabel('curl', 'Copy as cURL')}
           </button>
           <button
             className="copy-cmd"
             onClick={(event) => {
               event.stopPropagation();
-              navigator.clipboard?.writeText(toHttpie(request));
+              void this.copy('httpie', toHttpie(request));
             }}
             title="Copy this request as an HTTPie command (with the variables already resolved)"
           >
-            Copy as HTTPie
+            {this.copyLabel('httpie', 'Copy as HTTPie')}
           </button>
         </div>
         {ignoredHeaders.length > 0 && (
@@ -278,7 +307,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
                   }}
                   title="Copy the raw response body (exactly as received)"
                 >
-                  Copy body
+                  {this.copyLabel('body', 'Copy body')}
                 </button>
               )}
               <button
