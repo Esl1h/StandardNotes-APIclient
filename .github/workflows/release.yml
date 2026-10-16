@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        # The push steps carry their own token; none is left in .git/config
+        # for the build and test steps to read.
+        with:
+          persist-credentials: false
 
       - name: Use Node.js 22
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -92,7 +96,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           REPO="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+          if git ls-remote --exit-code --heads "$REPO" gh-pages >/dev/null 2>&1; then
             git clone --depth 1 --branch gh-pages "$REPO" pages
             rsync -a --delete --exclude .git build/ pages/
             cd pages
