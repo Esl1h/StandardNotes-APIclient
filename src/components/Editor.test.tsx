@@ -293,6 +293,37 @@ describe('Editor', () => {
     expect(getResponse('login')).toBeUndefined();
   });
 
+  it('does not record a request still running when the note changes', async () => {
+    const { loadNote } = setup();
+    loadNote('### Login\n# @name login\nGET https://a.example\nAuthorization: Bearer A\n');
+    let finish: (value: object) => void = () => {};
+    let signal: AbortSignal | undefined;
+    executeMock.mockImplementationOnce((_request, options) => {
+      signal = options?.signal;
+      return new Promise((resolve) => (finish = resolve));
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+    // Same title, so the block would otherwise stay mounted across notes.
+    loadNote('### Login\n# @name login\nGET https://b.example\n');
+    await act(async () =>
+      finish({
+        response: {
+          status: 200,
+          timeMs: 1,
+          sizeBytes: 1,
+          sizeIsDecoded: true,
+          headers: {},
+          body: '{"token": "A"}',
+        },
+      })
+    );
+
+    expect(signal?.aborted).toBe(true);
+    expect(getResponse('login')).toBeUndefined();
+    expect(screen.queryByText('200')).not.toBeInTheDocument();
+  });
+
   it('does not let undo revert a remote update of the same note', () => {
     const { getView, loadNote, syncRemote, type } = setup();
     loadNote('GET https://a.example');

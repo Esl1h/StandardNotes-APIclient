@@ -191,15 +191,18 @@ function EditorInternal(props: EditorInternalInterface) {
   }, [activeIndex]);
 
   // Keyed by title and repeat count, not by line: adding lines above a block
-  // must not remount it and drop the response it is showing.
+  // must not remount it and drop the response it is showing. The note epoch
+  // is part of the key so a note switch does remount every block, aborting a
+  // run still in flight before it records the old note's traffic under a
+  // label of the new one.
   const blockKeys = useMemo(() => {
     const seen = new Map<string, number>();
     return httpFile.requests.map((request) => {
       const ordinal = seen.get(request.title) ?? 0;
       seen.set(request.title, ordinal + 1);
-      return `${request.title}#${ordinal}`;
+      return `${historyEpoch}:${request.title}#${ordinal}`;
     });
-  }, [httpFile.requests]);
+  }, [httpFile.requests, historyEpoch]);
 
   // Labels of the requests in this file, so a {{label.response.*}} reference
   // is not warned about as an unresolved variable.

@@ -81,6 +81,8 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
 
   componentWillUnmount() {
     this.abortController?.abort();
+    // Marks a run still in flight as stale, so its result is dropped.
+    this.abortController = undefined;
     this.releaseBinaryUrl();
     clearTimeout(this.copiedTimer);
   }
@@ -108,6 +110,8 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     // by earlier runs; dynamic variables are generated fresh on every
     // execution. Neither is ever written back into the note.
     const sent = resolveDynamicRequest(resolveChainedRequest(this.props.request));
+    // The label the run started under; the props may change before it ends.
+    const { name } = this.props.request;
     return executeRequest(sent, {
       signal: controller.signal,
       ...(this.props.request.timeoutMs !== undefined
@@ -118,11 +122,10 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
       if (this.abortController !== controller) {
         return;
       }
-      const { request } = this.props;
-      if (request.name && result.response) {
+      if (name && result.response) {
         // The request as it was sent feeds {{name.request.*}} references.
-        recordRequest(request.name, sent);
-        recordResponse(request.name, result.response);
+        recordRequest(name, sent);
+        recordResponse(name, result.response);
       }
       this.setState({
         running: false,
