@@ -73,6 +73,12 @@ const HOST_HTML = `<!doctype html>
       '*'
     );
   };
+  // The real host's sandbox: no allow-same-origin and no allow attribute,
+  // so the plugin runs with an opaque origin and no clipboard-write.
+  if (window.__snSandbox) {
+    frame.sandbox =
+      'allow-scripts allow-top-navigation-by-user-activation allow-popups allow-modals allow-forms allow-downloads';
+  }
   frame.src = '/index.html';
 </script>
 </body>
@@ -85,18 +91,24 @@ const HOST_HTML = `<!doctype html>
  * the mobile app, whose web UI runs from a local file inside a WebView.
  * `componentData` is what the app stored for the component, as sent on
  * registration; `window.componentData` holds the latest saved value.
+ * `snSandbox` puts the iframe under the sandbox the web and desktop apps
+ * use, which leaves the plugin an opaque origin.
  */
-async function openHost(page, { text, throttle = 1, opaqueOrigin = false, componentData = {} }) {
+async function openHost(
+  page,
+  { text, throttle = 1, opaqueOrigin = false, componentData = {}, snSandbox = false }
+) {
   if (throttle > 1) {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
   }
   await page.addInitScript(
-    ({ note, data }) => {
+    ({ note, data, sandbox }) => {
       window.__initialNote = note;
       window.__componentData = data;
+      window.__snSandbox = sandbox;
     },
-    { note: text, data: componentData }
+    { note: text, data: componentData, sandbox: snSandbox }
   );
   const headers = opaqueOrigin
     ? {
