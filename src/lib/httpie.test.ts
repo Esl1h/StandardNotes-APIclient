@@ -48,4 +48,10 @@ describe('toHttpie', () => {
   it('uppercases whatever method was parsed', () => {
     expect(toHttpie(request({ method: 'patch' }))).toBe("http PATCH 'https://x.y/a'");
   });
+
+  it('ends the options before a url that starts with "-"', () => {
+    expect(
+      toHttpie(request({ method: 'POST', url: '--auth=u:p', headers: { 'X-A': '1' }, body: 'b' }))
+    ).toBe("http --raw 'b' -- POST '--auth=u:p' 'X-A: 1'");
+  });
 });

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Block from './Block';
 import { executeRequest, type ExecutionResult } from '../lib/executor';
 import { type HttpRequest } from '../lib/parser';
@@ -298,6 +298,37 @@ describe('Block', () => {
     expect(writeText).toHaveBeenCalledWith(
       "http POST 'https://example.com/ping' --raw '{\"a\": 1}'"
     );
+  });
+
+  it('confirms a copy on the button, then restores its label', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      writable: true,
+      configurable: true,
+    });
+    render(<Block request={request} active={false} onSelect={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy as HTTPie' })).toBeInTheDocument();
+    await act(() => vi.advanceTimersByTimeAsync(1500));
+    expect(screen.getByRole('button', { name: 'Copy as cURL' })).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it('reports a copy the browser refused', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+      writable: true,
+      configurable: true,
+    });
+    render(<Block request={request} active={false} onSelect={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as HTTPie' }));
+
+    expect(await screen.findByRole('button', { name: 'Copy failed' })).toBeInTheDocument();
   });
 
   it('moves the focus between blocks with the arrow keys', () => {

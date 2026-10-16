@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { type HttpVariable } from '../lib/parser';
+import { COPY_FEEDBACK_MS, copyText } from '../lib/clipboard';
 
 interface VariablesPanelInterface {
   variables: HttpVariable[];
@@ -18,7 +19,7 @@ const MASK = '••••••••';
  * environment chips used to switch the @env declaration in the text. */
 function VariablesPanel(props: VariablesPanelInterface) {
   const { variables, environments, activeEnvironment, onSetEnvironment } = props;
-  const [copied, setCopied] = useState<string | null>(null);
+  const [copied, setCopied] = useState<{ key: string; ok: boolean } | null>(null);
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
 
   if (variables.length === 0) {
@@ -39,10 +40,10 @@ function VariablesPanel(props: VariablesPanelInterface) {
     });
   };
 
-  const copy = (variable: HttpVariable) => {
-    navigator.clipboard?.writeText(variable.value);
-    setCopied(rowKey(variable));
-    setTimeout(() => setCopied(null), 1500);
+  const copy = async (variable: HttpVariable) => {
+    const ok = await copyText(variable.value);
+    setCopied({ key: rowKey(variable), ok });
+    setTimeout(() => setCopied(null), COPY_FEEDBACK_MS);
   };
 
   return (
@@ -89,10 +90,10 @@ function VariablesPanel(props: VariablesPanelInterface) {
               )}
               <button
                 className="copy"
-                onClick={() => copy(variable)}
+                onClick={() => void copy(variable)}
                 title={`Copy the value of ${fullKey}`}
               >
-                {copied === key ? 'copied' : 'copy'}
+                {copied?.key !== key ? 'copy' : copied.ok ? 'copied' : 'copy failed'}
               </button>
             </li>
           );

@@ -13,14 +13,18 @@ function shellQuote(value: string): string {
 
 /** The request as an `http` (HTTPie) command line. */
 function toHttpie(request: HttpRequest): string {
-  const parts = ['http', request.method.toUpperCase(), shellQuote(request.url)];
+  const method = request.method.toUpperCase();
+  const items = [shellQuote(request.url)];
   for (const [name, value] of Object.entries(request.headers)) {
-    parts.push(shellQuote(`${name}: ${value}`));
+    items.push(shellQuote(`${name}: ${value}`));
   }
-  if (request.body !== undefined) {
-    parts.push('--raw', shellQuote(request.body));
+  const raw = request.body !== undefined ? ['--raw', shellQuote(request.body)] : [];
+  // Quoting does not stop HTTPie from reading a url that starts with "-" as
+  // an option; "--" ends the options, so --raw has to come before it.
+  if (request.url.startsWith('-')) {
+    return ['http', ...raw, '--', method, ...items].join(' ');
   }
-  return parts.join(' ');
+  return ['http', method, ...items, ...raw].join(' ');
 }
 
 export { toHttpie, shellQuote };

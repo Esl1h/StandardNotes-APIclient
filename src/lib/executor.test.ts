@@ -41,6 +41,10 @@ describe('isBinaryContentType', () => {
     ['text/plain; charset=utf-8', false],
     ['text/html', false],
     ['image/svg+xml', false],
+    ['application/pdfx', false],
+    ['image/', false],
+    ['image/png<x>', false],
+    ['application/vnd.ms-', false],
     ['', false],
   ])('classifies %j as binary: %s', (contentType, expected) => {
     expect(isBinaryContentType(contentType)).toBe(expected);
@@ -137,7 +141,7 @@ describe('executeRequest', () => {
       arrayBuffer: async () => bytes,
       headers: {
         forEach: (callback: (value: string, name: string) => void) =>
-          callback('image/png', 'content-type'),
+          callback('IMAGE/PNG; q=1', 'content-type'),
       },
     });
 

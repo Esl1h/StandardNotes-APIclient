@@ -33,7 +33,8 @@ describe('VariablesPanel', () => {
     expect(error).not.toHaveBeenCalled();
   });
 
-  it('marks only the copied row as copied', () => {
+  it('marks only the copied row as copied', async () => {
+    vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
     renderPanel([
       { name: 'host', value: 'https://one.example', lineIndex: 0 },
       { name: 'host', value: 'https://two.example', lineIndex: 3 },
@@ -42,8 +43,19 @@ describe('VariablesPanel', () => {
 
     fireEvent.click(within(second).getByRole('button', { name: 'copy' }));
 
-    expect(within(second).getByRole('button')).toHaveTextContent('copied');
+    expect(await within(second).findByRole('button', { name: 'copied' })).toBeInTheDocument();
     expect(within(first).getByRole('button')).toHaveTextContent('copy');
+    vi.unstubAllGlobals();
+  });
+
+  it('says so when the clipboard is unavailable', async () => {
+    vi.stubGlobal('navigator', {});
+    renderPanel([{ name: 'host', value: 'https://one.example', lineIndex: 0 }]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'copy' }));
+
+    expect(await screen.findByRole('button', { name: 'copy failed' })).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 
   describe('secret values', () => {

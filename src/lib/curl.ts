@@ -13,7 +13,12 @@ function shellQuote(value: string): string {
 
 /** The request as a `curl` command line. */
 function toCurl(request: HttpRequest): string {
-  const parts = ['curl', '-X', request.method.toUpperCase(), shellQuote(request.url)];
+  // Quoting does not stop curl from reading a url that starts with "-" as
+  // an option (-o/path would write a file); --url always takes a url.
+  const url = request.url.startsWith('-')
+    ? `--url ${shellQuote(request.url)}`
+    : shellQuote(request.url);
+  const parts = ['curl', '-X', request.method.toUpperCase(), url];
   for (const [name, value] of Object.entries(request.headers)) {
     parts.push('-H', shellQuote(`${name}: ${value}`));
   }
