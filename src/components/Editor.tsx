@@ -52,6 +52,12 @@ export default class Editor extends React.Component<Record<string, never>, Edito
   /** The note EditorKit last streamed; setEditorRawText does not carry the id */
   noteUuid?: string;
 
+  /** The note whose text is shown; streamed text of another one is a switch */
+  shownNoteUuid?: string;
+
+  /** True when the last streamed text already counted as a note switch */
+  switchHandled = false;
+
   componentDidMount() {
     this.waitTimer = setTimeout(() => this.setState({ waitTimedOut: true }), NOTE_WAIT_MS);
   }
@@ -71,10 +77,26 @@ export default class Editor extends React.Component<Record<string, never>, Edito
           return;
         }
         const httpFile = parseHttpFile(text);
-        this.setState({ rawText: text, httpFile, noteReceived: true });
+        // EditorKit takes the note identity from every stream, metadata-only
+        // ones included, so text arriving after one for the new note looks
+        // like an update of the same note and clearUndoHistory never comes.
+        // The switch is told from the note id instead.
+        const switched = this.noteUuid !== this.shownNoteUuid;
+        this.shownNoteUuid = this.noteUuid;
+        this.switchHandled = switched;
+        this.setState(({ historyEpoch }) => ({
+          rawText: text,
+          httpFile,
+          noteReceived: true,
+          historyEpoch: switched ? historyEpoch + 1 : historyEpoch,
+        }));
       },
       // EditorKit calls this after setEditorRawText when the note changed.
       clearUndoHistory: () => {
+        if (this.switchHandled) {
+          this.switchHandled = false;
+          return;
+        }
         this.setState(({ historyEpoch }) => ({ historyEpoch: historyEpoch + 1 }));
       },
       handleRequestForContentHeight: () => undefined,

@@ -73,6 +73,50 @@ describe('Block', () => {
     );
   });
 
+  it.each([
+    [
+      'resolves a recorded label the note still defines',
+      new Set(['login']),
+      'https://example.com/x?t=secret-token',
+    ],
+    [
+      'leaves literal a recorded label the note no longer defines',
+      new Set<string>(),
+      'https://example.com/x?t={{login.response.body.$.token}}',
+    ],
+  ])('%s', async (_name, requestNames, sent) => {
+    recordResponse('login', {
+      status: 200,
+      timeMs: 1,
+      sizeBytes: 10,
+      sizeIsDecoded: true,
+      headers: {},
+      body: '{"token": "secret-token"}',
+    });
+    executeMock.mockResolvedValue({ response: undefined });
+    render(
+      <Block
+        request={{
+          ...request,
+          url: 'https://example.com/x?t={{login.response.body.$.token}}',
+        }}
+        requestNames={requestNames}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+    const warned = screen.queryByText('Unresolved variables: login.response.body.$.token');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+    await waitFor(() => expect(executeMock).toHaveBeenCalled());
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ url: sent }),
+      expect.anything()
+    );
+    expect(warned !== null).toBe(requestNames.size === 0);
+  });
+
   it('records the response of a named request for later chaining', async () => {
     executeMock.mockResolvedValue({
       response: {
@@ -425,6 +469,36 @@ describe('Block', () => {
     expect(screen.getByText('→ https://example.com/final')).toBeInTheDocument();
   });
 
+  it('keeps the resolved url out of every attribute, where a stylesheet could read it', async () => {
+    const url = 'https://example.com/files/report.png?token=secret-value';
+    executeMock.mockResolvedValue({
+      response: {
+        status: 200,
+        timeMs: 5,
+        sizeBytes: 4,
+        sizeIsDecoded: true,
+        headers: { 'content-type': 'image/png' },
+        body: '',
+        redirectedTo: 'https://example.com/final?token=secret-value',
+        binary: { blob: new Blob([new Uint8Array([1])]), contentType: 'image/png' },
+      },
+    });
+    const { container } = render(
+      <Block request={{ ...request, url }} active={false} onSelect={() => {}} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+    await screen.findByText(/→/);
+
+    for (const element of container.querySelectorAll('*')) {
+      for (const attribute of element.attributes) {
+        expect(attribute.value).not.toContain('secret-value');
+        expect(attribute.value).not.toContain('report.png');
+      }
+    }
+    expect(screen.getByText(url)).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: `GET ${url}` })).toBeInTheDocument();
+  });
+
   it('shows no redirect note without a redirect', async () => {
     await runBlock({
       response: {
@@ -530,7 +604,7 @@ describe('Block', () => {
       expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:preview');
       const download = screen.getByRole('link', { name: /download/i });
       expect(download).toHaveAttribute('href', 'blob:preview');
-      expect(download).toHaveAttribute('download', 'logo.png');
+      expect(download).toHaveAttribute('download', 'response.png');
       expect(screen.queryByRole('button', { name: /copy body/i })).not.toBeInTheDocument();
     });
 
@@ -538,6 +612,15 @@ describe('Block', () => {
       await runBlock(binaryResponse('application/pdf'), { url: 'https://x.y/' });
 
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /download/i })).toHaveAttribute(
+        'download',
+        'response.pdf'
+      );
+    });
+
+    it('names a download of an unknown type without an extension', async () => {
+      await runBlock(binaryResponse('application/octet-stream'));
+
       expect(screen.getByRole('link', { name: /download/i })).toHaveAttribute(
         'download',
         'response'

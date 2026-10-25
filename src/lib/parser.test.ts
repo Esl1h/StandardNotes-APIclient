@@ -255,6 +255,34 @@ describe('parseHttpFile', () => {
     expect(setActiveEnvironment('A only', 'dev')).toBe('@env = dev\nA only');
   });
 
+  describe('an @env-shaped line inside a request body', () => {
+    const body = ['POST https://e.com/', 'Content-Type: text/plain', '', '@env = prod', 'rest'];
+
+    it('is payload, not the environment', () => {
+      const file = parseHttpFile(['@token.prod = p', ...body].join('\n'));
+
+      expect(file.environment).toBeNull();
+      expect(file.requests[0].body).toBe('@env = prod\nrest');
+    });
+
+    it('does not override the real declaration', () => {
+      const file = parseHttpFile(['@env = dev', ...body].join('\n'));
+
+      expect(file.environment).toBe('dev');
+    });
+
+    it('is never removed or rewritten by setActiveEnvironment', () => {
+      const note = ['@env = dev', ...body].join('\n');
+
+      expect(setActiveEnvironment(note, null)).toBe(body.join('\n'));
+      expect(setActiveEnvironment(note, 'staging')).toBe(['@env = staging', ...body].join('\n'));
+      expect(setActiveEnvironment(body.join('\n'), null)).toBe(body.join('\n'));
+      expect(setActiveEnvironment(body.join('\n'), 'staging')).toBe(
+        ['@env = staging', ...body].join('\n')
+      );
+    });
+  });
+
   it('checks the environment scope before the default one', () => {
     const text = [
       '@host = default',
@@ -583,6 +611,39 @@ describe('parseHttpFile', () => {
   });
 
   describe('robustness', () => {
+    // Each level references the one below twice, so the value doubles.
+    const ladder = (depth: number) => {
+      const lines = ['@v0 = xx'];
+      for (let level = 1; level <= depth; level++) {
+        lines.push(`@v${level} = {{v${level - 1}}}{{v${level - 1}}}`);
+      }
+      return [...lines, `GET https://e.com/{{v${depth}}}`].join('\n');
+    };
+
+    it('bounds the expansion of variables that double per level', () => {
+      const started = Date.now();
+      const file = parseHttpFile(ladder(30));
+
+      expect(Date.now() - started).toBeLessThan(1000);
+      expect(file.requests[0].url.length).toBeLessThan(4 * 1024 * 1024);
+      expect(file.requests[0].url).toContain('{{v');
+      expect(file.variables.find((variable) => variable.name === 'v10')?.value).toBe(
+        'x'.repeat(2 ** 11)
+      );
+    });
+
+    it('leaves a reference nested past the depth limit literal', () => {
+      // Declared top down, so the first value resolved is the deepest one.
+      const lines: string[] = [];
+      for (let level = 200; level >= 1; level--) {
+        lines.push(`@v${level} = {{v${level - 1}}}`);
+      }
+      const text = [...lines, '@v0 = end', 'GET https://e.com/{{v200}}'].join('\n');
+
+      expect(() => parseHttpFile(text)).not.toThrow();
+      expect(parseHttpFile(text).requests[0].url).toMatch(/^https:\/\/e\.com\/\{\{v\d+\}\}$/);
+    });
+
     it('never throws on arbitrary text', () => {
       fc.assert(
         fc.property(fc.string({ unit: 'binary' }), (text) => {

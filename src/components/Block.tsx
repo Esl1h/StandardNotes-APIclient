@@ -49,15 +49,15 @@ interface BlockDriverState {
 
 type CopyTarget = 'curl' | 'httpie' | 'body';
 
-/** File name for a downloaded response: the last path segment of the url */
-function downloadName(url: string): string {
-  try {
-    const segment = new URL(url).pathname.split('/').filter(Boolean).pop();
-    return segment ? decodeURIComponent(segment) : 'response';
-  } catch {
-    return 'response';
-  }
+/** File name for a downloaded response, with the extension of its type;
+ * never taken from the url, which may carry a secret (see render). */
+function downloadName(contentType: string): string {
+  const extension = /^[a-z]+\/([a-z0-9]+)(?:[+;]|$)/i.exec(contentType)?.[1];
+  return extension ? `response.${extension.toLowerCase()}` : 'response';
 }
+
+/** Ids for the elements that label a block, unique per instance. */
+let nextBlockId = 0;
 
 /**
  * One .http request block: summary line, Run button and inline response
@@ -67,6 +67,7 @@ function downloadName(url: string): string {
 class Block extends React.Component<BlockProperties, BlockDriverState> {
   abortController?: AbortController;
   copiedTimer?: ReturnType<typeof setTimeout>;
+  labelId = `block-${++nextBlockId}`;
 
   constructor(props: BlockProperties) {
     super(props);
@@ -108,8 +109,11 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     });
     // Chained references resolve from responses and sent requests recorded
     // by earlier runs; dynamic variables are generated fresh on every
-    // execution. Neither is ever written back into the note.
-    const sent = resolveDynamicRequest(resolveChainedRequest(this.props.request));
+    // execution. Neither is ever written back into the note. Only labels
+    // the note still defines resolve, as the unresolved warning says.
+    const sent = resolveDynamicRequest(
+      resolveChainedRequest(this.props.request, this.props.requestNames)
+    );
     // The label the run started under; the props may change before it ends.
     const { name } = this.props.request;
     return executeRequest(sent, {
@@ -209,6 +213,9 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     const bodyText = prettyBody ?? response?.body ?? '';
     const bodyCapped = bodyText.length > DISPLAY_LIMIT && !showFullBody;
 
+    // The url is resolved, secrets included ({{token}} in a query string),
+    // so it only ever appears as text: a host theme stylesheet can read any
+    // attribute with a selector and send what matches to its own server.
     return (
       <div
         className={active ? 'block active' : 'block'}
@@ -219,7 +226,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
         // itself stays focusable and keyboard-navigable.
         role="group"
         tabIndex={0}
-        aria-label={`${request.method} ${request.url}`}
+        aria-labelledby={`${this.labelId}-method ${this.labelId}-url`}
       >
         <div className="block-summary">
           {running ? (
@@ -245,8 +252,10 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               Run
             </button>
           )}
-          <span className="method">{request.method}</span>
-          <span className="url" title={request.url}>
+          <span className="method" id={`${this.labelId}-method`}>
+            {request.method}
+          </span>
+          <span className="url" id={`${this.labelId}-url`}>
             {request.url}
           </span>
           <button
@@ -255,7 +264,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               event.stopPropagation();
               void this.copy('curl', toCurl(request));
             }}
-            title="Copy this request as a cURL command (with the variables already resolved)"
+            title="Copy this request as a cURL command (with the variables already resolved, quoted for POSIX shells)"
           >
             {this.copyLabel('curl', 'Copy as cURL')}
           </button>
@@ -265,7 +274,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               event.stopPropagation();
               void this.copy('httpie', toHttpie(request));
             }}
-            title="Copy this request as an HTTPie command (with the variables already resolved)"
+            title="Copy this request as an HTTPie command (with the variables already resolved, quoted for POSIX shells)"
           >
             {this.copyLabel('httpie', 'Copy as HTTPie')}
           </button>
@@ -296,7 +305,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               {response.redirectedTo && (
                 <span
                   className="redirected"
-                  title={`The request followed redirects; this is the final URL (sent: ${request.url})`}
+                  title="The request followed redirects; this is the final URL"
                 >
                   → {response.redirectedTo}
                 </span>
@@ -362,7 +371,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
                 {binaryUrl && (
                   <a
                     href={binaryUrl}
-                    download={downloadName(request.url)}
+                    download={downloadName(response.binary.contentType)}
                     onClick={(event) => event.stopPropagation()}
                   >
                     Download ({response.binary.contentType}, {response.sizeBytes} B)
