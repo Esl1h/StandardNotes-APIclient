@@ -328,6 +328,47 @@ describe('Editor', () => {
     expect(getResponse('login')).toBeUndefined();
   });
 
+  it('treats text of another note as a switch even without clearUndoHistory', async () => {
+    const { getView, loadNote } = setup();
+    const delegate = kit.delegate;
+    const stream = (uuid: string) =>
+      act(() =>
+        delegate.onNoteValueChange?.({ uuid } as Parameters<
+          NonNullable<EditorKitDelegate['onNoteValueChange']>
+        >[0])
+      );
+    await stream('a');
+    loadNote('# @name login\nGET https://a.example\n');
+    executeMock.mockResolvedValue({
+      response: {
+        status: 200,
+        timeMs: 1,
+        sizeBytes: 1,
+        sizeIsDecoded: true,
+        headers: {},
+        body: '{"token": "t"}',
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+    await waitFor(() => expect(getResponse('login')).toBeDefined());
+
+    // EditorKit sees note b first in a metadata-only stream, so the text
+    // of b arrives as an update of the same note.
+    await stream('b');
+    act(() => delegate.setEditorRawText('GET https://b.example/{{login.response.body.$.token}}'));
+
+    expect(getResponse('login')).toBeUndefined();
+    expect(getView().state.doc.toString()).toBe(
+      'GET https://b.example/{{login.response.body.$.token}}'
+    );
+    act(() => {
+      undo(getView());
+    });
+    expect(getView().state.doc.toString()).toBe(
+      'GET https://b.example/{{login.response.body.$.token}}'
+    );
+  });
+
   it('does not record a request still running when the note changes', async () => {
     const { loadNote } = setup();
     loadNote('### Login\n# @name login\nGET https://a.example\nAuthorization: Bearer A\n');
