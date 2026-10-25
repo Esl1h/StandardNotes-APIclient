@@ -46,7 +46,9 @@ jobs:
       # keep, and force-push keeps it at one commit forever.
       - name: Publish to the badges branch
         run: |
-          REPO="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # git asks gh for the token, so it is never written into a URL.
+          gh auth setup-git
+          REPO="https://github.com/${GITHUB_REPOSITORY}.git"
           cd badges
           git init -q -b badges
           git config user.name "github-actions[bot]"
@@ -55,4 +57,4 @@ jobs:
           git commit -qm "Coverage badge for ${GITHUB_SHA}"
           git push -qf "$REPO" badges
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
