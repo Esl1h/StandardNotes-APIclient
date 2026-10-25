@@ -73,6 +73,50 @@ describe('Block', () => {
     );
   });
 
+  it.each([
+    [
+      'resolves a recorded label the note still defines',
+      new Set(['login']),
+      'https://example.com/x?t=secret-token',
+    ],
+    [
+      'leaves literal a recorded label the note no longer defines',
+      new Set<string>(),
+      'https://example.com/x?t={{login.response.body.$.token}}',
+    ],
+  ])('%s', async (_name, requestNames, sent) => {
+    recordResponse('login', {
+      status: 200,
+      timeMs: 1,
+      sizeBytes: 10,
+      sizeIsDecoded: true,
+      headers: {},
+      body: '{"token": "secret-token"}',
+    });
+    executeMock.mockResolvedValue({ response: undefined });
+    render(
+      <Block
+        request={{
+          ...request,
+          url: 'https://example.com/x?t={{login.response.body.$.token}}',
+        }}
+        requestNames={requestNames}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+    const warned = screen.queryByText('Unresolved variables: login.response.body.$.token');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+    await waitFor(() => expect(executeMock).toHaveBeenCalled());
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ url: sent }),
+      expect.anything()
+    );
+    expect(warned !== null).toBe(requestNames.size === 0);
+  });
+
   it('records the response of a named request for later chaining', async () => {
     executeMock.mockResolvedValue({
       response: {

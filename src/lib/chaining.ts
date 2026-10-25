@@ -161,10 +161,15 @@ function stringifyValue(value: unknown): string | undefined {
 
 /**
  * Replaces the chaining references in `text` that resolve; the rest stay
- * literal, so the block can still warn about what did not.
+ * literal, so the block can still warn about what did not. With
+ * `allowedLabels`, a label outside it stays literal too: the registry still
+ * holds what a request recorded after it was removed from the note.
  */
-function resolveChaining(text: string): string {
+function resolveChaining(text: string, allowedLabels?: ReadonlySet<string>): string {
   return text.replace(CHAIN_REF, (match, name: string, kind: string, path: string) => {
+    if (allowedLabels && !allowedLabels.has(name)) {
+      return match;
+    }
     const source = kind === 'response' ? responses.get(name) : requests.get(name);
     if (!source) {
       return match;
@@ -185,17 +190,20 @@ function resolveChaining(text: string): string {
 }
 
 /** A request copy with every resolvable chaining reference substituted. */
-function resolveChainedRequest(request: HttpRequest): HttpRequest {
-  const url = resolveChaining(request.url);
+function resolveChainedRequest(
+  request: HttpRequest,
+  allowedLabels?: ReadonlySet<string>
+): HttpRequest {
+  const url = resolveChaining(request.url, allowedLabels);
   const headers: Record<string, string> = {};
   for (const name of Object.keys(request.headers)) {
-    headers[name] = resolveChaining(request.headers[name]);
+    headers[name] = resolveChaining(request.headers[name], allowedLabels);
   }
   return {
     ...request,
     url,
     headers,
-    ...(request.body !== undefined ? { body: resolveChaining(request.body) } : {}),
+    ...(request.body !== undefined ? { body: resolveChaining(request.body, allowedLabels) } : {}),
   };
 }
 

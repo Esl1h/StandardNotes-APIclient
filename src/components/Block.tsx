@@ -109,8 +109,11 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     });
     // Chained references resolve from responses and sent requests recorded
     // by earlier runs; dynamic variables are generated fresh on every
-    // execution. Neither is ever written back into the note.
-    const sent = resolveDynamicRequest(resolveChainedRequest(this.props.request));
+    // execution. Neither is ever written back into the note. Only labels
+    // the note still defines resolve, as the unresolved warning says.
+    const sent = resolveDynamicRequest(
+      resolveChainedRequest(this.props.request, this.props.requestNames)
+    );
     // The label the run started under; the props may change before it ends.
     const { name } = this.props.request;
     return executeRequest(sent, {
