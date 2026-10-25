@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-10-25
+
+### Fixed
+
+- **sync:** Bound the echo guard by time, not count
+- **run-all:** Stop when the note changes mid-run
+- **editor:** Detect a note switch from the note id
+- **parser:** Bound the expansion of variables
+- **block:** Keep resolved urls out of attributes
+- **chaining:** Ignore labels the note no longer has
+- **parser:** Ignore @env lines inside a request body
+
+### Documentation
+
+- Say the exports are quoted for POSIX shells
+
 ## [1.0.0] - 2026-10-25
 
 ### Added
