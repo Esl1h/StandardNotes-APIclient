@@ -23,9 +23,7 @@ function pathOf(request: HttpRequest): string {
 /** The content type of a request body, by any letter case, without
  * parameters such as charset; text/plain when no content-type is set. */
 function bodyContentType(request: HttpRequest): string {
-  const found = Object.keys(request.headers).find(
-    (name) => name.toLowerCase() === 'content-type'
-  );
+  const found = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
   const value = found === undefined ? undefined : request.headers[found];
   return (value ?? 'text/plain').split(';')[0].trim();
 }

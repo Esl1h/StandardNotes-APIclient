@@ -91,8 +91,7 @@ async function executeRequest(
 
     // fetch follows redirects silently; surface where it ended up, since a
     // 200 from the wrong endpoint is a classic debugging dead end.
-    const redirectedTo =
-      response.url && response.url !== request.url ? response.url : undefined;
+    const redirectedTo = response.url && response.url !== request.url ? response.url : undefined;
 
     return {
       response: {

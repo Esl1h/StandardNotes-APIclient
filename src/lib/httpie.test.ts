@@ -40,9 +40,9 @@ describe('toHttpie', () => {
   });
 
   it('renders a body with --raw', () => {
-    expect(
-      toHttpie(request({ method: 'PUT', body: '{"a": 1}' }))
-    ).toBe("http PUT 'https://x.y/a' --raw '{\"a\": 1}'");
+    expect(toHttpie(request({ method: 'PUT', body: '{"a": 1}' }))).toBe(
+      "http PUT 'https://x.y/a' --raw '{\"a\": 1}'"
+    );
   });
 
   it('uppercases whatever method was parsed', () => {
