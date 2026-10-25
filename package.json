@@ -34,7 +34,9 @@
     "server-cors": "vite preview --port 3000",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "pretty": "prettier --write 'src/**/*.{html,css,scss,js,jsx,ts,tsx,json}' README.md"
+    "pretty": "prettier --write 'src/**/*.{html,css,scss,js,jsx,ts,tsx,json}' README.md",
+    "version:bump": "node scripts/version-bump.mjs",
+    "version:check": "node scripts/version-bump.mjs --check"
   },
   "dependencies": {
     "@codemirror/language": "^6.13.1",
