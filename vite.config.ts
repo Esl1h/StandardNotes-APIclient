@@ -1,9 +1,35 @@
 import react from '@vitejs/plugin-react';
+import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+
+// Scripts may only come from the plugin's own origin: no inline code, no
+// eval, no remote scripts. Connections stay open, since sending requests
+// anywhere is what the editor is for; so do styles, fonts and images,
+// because the host injects its theme stylesheet from wherever the app
+// keeps themes.
+const CONTENT_SECURITY_POLICY = [
+  "script-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+].join('; ');
+
+// Built pages only: the dev server injects inline scripts of its own.
+const contentSecurityPolicy = (): Plugin => ({
+  name: 'content-security-policy',
+  apply: 'build',
+  transformIndexHtml: () => [
+    {
+      tag: 'meta',
+      attrs: { 'http-equiv': 'Content-Security-Policy', content: CONTENT_SECURITY_POLICY },
+      injectTo: 'head-prepend',
+    },
+  ],
+});
 
 export default defineConfig({
   base: './',
-  plugins: [react()],
+  plugins: [react(), contentSecurityPolicy()],
   build: {
     outDir: 'build',
     // Lists every bundled dependency with its license text, shipped in the
