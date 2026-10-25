@@ -206,6 +206,41 @@ describe('Editor', () => {
     );
   });
 
+  it('stops running all when the note changes mid-run', async () => {
+    const { loadNote } = setup();
+    loadNote(
+      '### A1\nGET https://a1.example\n\n### A2\nGET https://a2.example\n\n### A3\nGET https://a3.example\n'
+    );
+    const pending: Array<(value: object) => void> = [];
+    executeMock.mockImplementation(() => new Promise((resolve) => pending.push(resolve)));
+    const ok = {
+      response: {
+        status: 200,
+        timeMs: 1,
+        sizeBytes: 1,
+        sizeIsDecoded: true,
+        headers: {},
+        body: '',
+      },
+    };
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run all' }));
+    await waitFor(() => expect(executeMock).toHaveBeenCalledTimes(1));
+    await act(async () => pending[0](ok));
+    await waitFor(() => expect(executeMock).toHaveBeenCalledTimes(2));
+
+    loadNote(
+      '### B1\nGET https://b1.example\n\n### B2\nGET https://b2.example\n\n### B3\nGET https://b3.example\n'
+    );
+    await act(async () => pending[1]({ error: { kind: 'aborted', message: 'Aborted' } }));
+
+    expect(await screen.findByRole('button', { name: 'Run all' })).toBeEnabled();
+    expect(executeMock.mock.calls.map(([request]) => request.url)).toEqual([
+      'https://a1.example',
+      'https://a2.example',
+    ]);
+  });
+
   it('copies every request as an OpenAPI document', () => {
     const writeText = vi.fn();
     Object.defineProperty(navigator, 'clipboard', {

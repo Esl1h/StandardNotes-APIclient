@@ -80,7 +80,10 @@ function EditorInternal(props: EditorInternalInterface) {
           continue;
         }
         const result = await block.run();
-        if (result?.error) {
+        // No result means the run was dropped as stale, as on a note switch
+        // that remounts every block: the blocks now mounted at the next
+        // indexes belong to the other note and must not run.
+        if (!result || result.error) {
           break;
         }
       }
