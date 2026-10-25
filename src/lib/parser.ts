@@ -76,6 +76,11 @@ const ASSERT_LINE = /^#\s*@assert\s+(.+)$/;
 const TIMEOUT_LINE = /^#\s*@timeout\s+([1-9]\d*)\s*$/;
 const ENV_DECLARATION_LINE = /^@env(?:\s*=\s*([A-Za-z0-9_-]+))?\s*$/m;
 
+/** Nested references followed along one path before the rest stay literal. */
+const MAX_REFERENCE_DEPTH = 64;
+/** Longest resolved value, in UTF-16 units; a longer one stays literal. */
+const MAX_RESOLVED_LENGTH = 1024 * 1024;
+
 type VariableLookup = (ref: string) => string | undefined;
 
 interface VariableScopes {
@@ -122,6 +127,17 @@ function resolveVariables(
 ): VariableLookup {
   const { base: rawBase, byEnvironment: rawByEnvironment } = buildScopes(variables);
 
+  // Variables that each reference the previous one twice expand 2^depth
+  // times from a few hundred bytes of note, on every keystroke, until the
+  // text outgrows the engine's string limit and the parse throws. So a value
+  // that resolved without meeting a cycle or the depth limit is expanded
+  // once and reused: it cannot depend on the path that reached it, since a
+  // path through it back to itself would have been a cycle. Values longer
+  // than MAX_RESOLVED_LENGTH, still doubling per level, stay as literal
+  // {{ref}} text, as does anything nested past MAX_REFERENCE_DEPTH.
+  const resolved = new Map<string, string | undefined>();
+  let pathDependent = false;
+
   // Expands `ref` as seen from `context` (an environment, or null for the
   // default scope). `seen` holds the scope-qualified names on the current
   // path: meeting one again is a cycle, left as literal {{ref}} text.
@@ -141,11 +157,27 @@ function resolveVariables(
     }
     const key = scoped === undefined ? name : `${name}.${scope}`;
     if (seen.has(key)) {
+      pathDependent = true;
       return undefined;
     }
+    if (resolved.has(key)) {
+      return resolved.get(key);
+    }
+    if (seen.size >= MAX_REFERENCE_DEPTH) {
+      pathDependent = true;
+      return undefined;
+    }
+    const outerPathDependent = pathDependent;
+    pathDependent = false;
     const path = new Set(seen).add(key);
     const nextContext = scoped === undefined ? null : scope;
-    return interpolate(raw, (inner) => resolve(nextContext, inner, path));
+    const expanded = interpolate(raw, (inner) => resolve(nextContext, inner, path));
+    const value = expanded.length > MAX_RESOLVED_LENGTH ? undefined : expanded;
+    if (!pathDependent) {
+      resolved.set(key, value);
+    }
+    pathDependent = pathDependent || outerPathDependent;
+    return value;
   };
 
   const base = new Map<string, string>();
