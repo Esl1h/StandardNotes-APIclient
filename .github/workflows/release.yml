@@ -92,7 +92,9 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          REPO="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # git asks gh for the token, so it is never written into a URL.
+          gh auth setup-git
+          REPO="https://github.com/${GITHUB_REPOSITORY}.git"
           if git ls-remote --exit-code --heads "$REPO" gh-pages >/dev/null 2>&1; then
             git clone --depth 1 --branch gh-pages "$REPO" pages
             rsync -a --delete --exclude .git build/ pages/
