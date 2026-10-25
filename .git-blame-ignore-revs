@@ -1,0 +1,5 @@
+# Formatting-only commits; git blame skips them when
+# blame.ignoreRevsFile points here (GitHub reads this file by default).
+
+# style: apply prettier to files that drifted
+2cf7368d57567a2a3874f699ee890a7300eb023e
