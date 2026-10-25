@@ -324,6 +324,26 @@ describe('Editor', () => {
     expect(screen.queryByText('200')).not.toBeInTheDocument();
   });
 
+  it('ignores a late echo of a save that many keystrokes followed', () => {
+    const { getView, save, loadNote, syncRemote, type } = setup();
+    loadNote('GET https://a.example');
+    const typed = '?abcdefg';
+    for (const character of typed) {
+      type(character);
+    }
+
+    // The app echoes the save it got after the second keystroke.
+    syncRemote('GET https://a.example?a');
+
+    expect(getView().state.doc.toString()).toBe(`GET https://a.example${typed}`);
+    type('h');
+    expect(save).toHaveBeenLastCalledWith(`GET https://a.example${typed}h`);
+    act(() => {
+      undo(getView());
+    });
+    expect(getView().state.doc.toString()).toBe('GET https://a.example');
+  });
+
   it('does not let undo revert a remote update of the same note', () => {
     const { getView, loadNote, syncRemote, type } = setup();
     loadNote('GET https://a.example');

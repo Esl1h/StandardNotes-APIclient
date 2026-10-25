@@ -43,9 +43,21 @@ describe('EchoGuard', () => {
     expect(guard.isStaleEcho('n1', 'a', 'ab')).toBe(false);
   });
 
-  it('remembers only the last 5 saves', () => {
-    ['1', '2', '3', '4', '5', '6'].forEach((text) => guard.recordSave(text));
-    expect(guard.isStaleEcho('n1', '1', '6')).toBe(false);
-    expect(guard.isStaleEcho('n1', '2', '6')).toBe(true);
+  it('remembers every save within the window, however many followed it', () => {
+    guard.recordSave('1');
+    for (let index = 2; index <= 11; index++) {
+      t += 100;
+      guard.recordSave(String(index));
+    }
+    expect(guard.isStaleEcho('n1', '1', '11')).toBe(true);
+  });
+
+  it('forgets a save once the window has passed, even with later saves', () => {
+    guard.recordSave('1');
+    t = ECHO_WINDOW_MS / 2;
+    guard.recordSave('2');
+    t = ECHO_WINDOW_MS + 1;
+    expect(guard.isStaleEcho('n1', '1', '3')).toBe(false);
+    expect(guard.isStaleEcho('n1', '2', '3')).toBe(true);
   });
 });
