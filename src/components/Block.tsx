@@ -264,7 +264,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               event.stopPropagation();
               void this.copy('curl', toCurl(request));
             }}
-            title="Copy this request as a cURL command (with the variables already resolved)"
+            title="Copy this request as a cURL command (with the variables already resolved, quoted for POSIX shells)"
           >
             {this.copyLabel('curl', 'Copy as cURL')}
           </button>
@@ -274,7 +274,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
               event.stopPropagation();
               void this.copy('httpie', toHttpie(request));
             }}
-            title="Copy this request as an HTTPie command (with the variables already resolved)"
+            title="Copy this request as an HTTPie command (with the variables already resolved, quoted for POSIX shells)"
           >
             {this.copyLabel('httpie', 'Copy as HTTPie')}
           </button>

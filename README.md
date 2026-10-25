@@ -153,7 +153,8 @@ GET https://jsonplaceholder.typicode.com/posts/1
 - `Ctrl/Cmd+Enter` in the source runs the request under the caret
 - `Copy as cURL` on a block copies it as a `curl` command line, with the
   variables already resolved and every value shell-quoted; `Copy as HTTPie`
-  does the same as an `http` command line
+  does the same as an `http` command line. The quoting is for POSIX shells
+  (bash, zsh); pasting into PowerShell or cmd.exe is not covered
 - `Copy OpenAPI` copies every request in the note as an OpenAPI 3.1
   document: one operation per block, with the query string and headers as
   parameters and the body as an example
