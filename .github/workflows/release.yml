@@ -21,6 +21,8 @@ jobs:
         # The push steps carry their own token; none is left in .git/config
         # for the build and test steps to read.
         with:
+          # git-cliff needs the tags and the history between them.
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Use Node.js
@@ -80,6 +82,9 @@ jobs:
           "
           cd dist-pkg && zip -qr ../extension.zip . && cd ..
 
+      - name: Write release notes
+        run: npx git-cliff --latest --strip header -o release-notes.md
+
       - name: Write checksums
         run: sha256sum extension.zip > SHA256SUMS
 
@@ -96,7 +101,7 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" extension.zip SHA256SUMS \
             --title "$GITHUB_REF_NAME" \
-            --generate-notes \
+            --notes-file release-notes.md \
             --verify-tag
 
       - name: Deploy to GitHub Pages

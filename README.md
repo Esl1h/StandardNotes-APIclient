@@ -219,29 +219,18 @@ does not clash with the hosted one.
 If you run into issues, please refer to the
 [Standard Notes instructions for local plugin setup](https://standardnotes.com/help/plugins/local-setup).
 
-### Deployment
+### Releases
 
-The extension is hosted on GitHub Pages from the `gh-pages` branch, served
-at `https://esli.cafe/StandardNotes-APIclient/`. Releases are automated by
-the `Release` workflow:
+The extension is hosted on GitHub Pages from the `gh-pages` branch, served at `https://esli.cafe/StandardNotes-APIclient/`. To cut a release:
 
-1. Bump the version in `package.json`, `package-lock.json` and
-   `public/ext.json` (also its `download_url`) in one `chore(release)`
-   commit, merged through a pull request (`main` is protected). The
-   `Release` workflow
-   rewrites the version on the distributed `ext.json` (zip + Pages), so the
-   desktop app updates automatically by comparing the version at
-   `latest_url`; keeping the committed copy in sync avoids a misleading one.
-2. On `main`, push a tag whose version matches `package.json` (the workflow
-   fails otherwise):
+1. On a branch, run `npm run version:bump X.Y.Z`, which writes the version to `package.json`, `package-lock.json`, `public/package.json`, `public/ext.json` (with its `download_url`) and `public/ext.dev.json`, then `npm run changelog -- --tag vX.Y.Z`, which adds the section for the new version to `CHANGELOG.md` from the commits since the last tag. Commit both as `chore(release): vX.Y.Z` and merge the pull request.
+2. On `main`, push the tag:
 
 ```
 git tag -a vX.Y.Z -m vX.Y.Z && git push origin vX.Y.Z
 ```
 
-The workflow builds, runs the checks, attaches `extension.zip` to the
-GitHub release (that zip is what the desktop app installs) and publishes
-the hosted build to Pages.
+The `Release` workflow fails unless the tag matches every version file. It runs the checks, attaches `extension.zip` (the package the desktop app installs) with `SHA256SUMS` and a provenance attestation to the GitHub release, writes the release notes with git-cliff and publishes the hosted build to Pages. The app finds the update by comparing the version in the `ext.json` at `latest_url`.
 
 ## Credits and license
 
