@@ -9,20 +9,31 @@ on:
 permissions:
   contents: read
 
+# A newer push supersedes the run in progress on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - name: Use Node.js 22
+      - name: Use Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Check version sync
+        run: npm run version:check
 
       - name: Typecheck
         run: npm run typecheck
@@ -36,15 +47,27 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check build contents
+        run: npm run check:build
+
+      # Advisory only: surfaces critical advisories in the log without
+      # blocking a build; Dependabot raises the fixes.
+      - name: Audit dependencies
+        run: npm audit --audit-level=critical
+        continue-on-error: true
+
   e2e:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - name: Use Node.js 22
+      - name: Use Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
@@ -67,3 +90,11 @@ jobs:
       # mobile registration scenario.
       - name: End to end tests
         run: npm run e2e
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7
