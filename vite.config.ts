@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'build',
+    // Lists every bundled dependency with its license text, shipped in the
+    // zip and on Pages next to the code it covers.
+    license: { fileName: 'THIRD_PARTY_LICENSES.md' },
     rollupOptions: {
       input: {
         main: 'index.html',

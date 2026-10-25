@@ -13,6 +13,7 @@ const entryPoints = new Set([
   'ext.dev.json',
   'package.json',
   'robots.txt',
+  'THIRD_PARTY_LICENSES.md',
 ]);
 const textFile = /\.(html|js|css|json|txt)$/;
 
