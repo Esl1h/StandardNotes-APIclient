@@ -58,7 +58,7 @@ test('demo previews a binary image response and offers it for download', async (
   const image = page.locator('.block .binary-response img');
   await expect(image).toBeVisible();
   expect(await image.evaluate((element) => element.naturalWidth)).toBe(1);
-  await expect(page.locator('.block .binary-response a')).toHaveAttribute('download', 'logo.png');
+  await expect(page.locator('.block .binary-response a')).toHaveAttribute('download', 'response.png');
   await expect(page.locator('.block .response-body')).toHaveCount(0);
 });
 
