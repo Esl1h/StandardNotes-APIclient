@@ -139,7 +139,10 @@ function bodyPath(source: { body?: string }, path: string): string | undefined {
 }
 
 /** A header value, by any letter case; undefined when absent. */
-function headerValue(source: { headers: Record<string, string> }, name: string): string | undefined {
+function headerValue(
+  source: { headers: Record<string, string> },
+  name: string
+): string | undefined {
   const wanted = name.toLowerCase();
   const found = Object.keys(source.headers).find((key) => key.toLowerCase() === wanted);
   return found ? source.headers[found] : undefined;

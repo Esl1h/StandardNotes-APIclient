@@ -72,9 +72,7 @@ describe('executeRequest', () => {
   });
 
   it('reports the final URL when the request was redirected', async () => {
-    fetchMock.mockResolvedValue(
-      makeResponse('ok', 200, [], 'https://example.com/final.html')
-    );
+    fetchMock.mockResolvedValue(makeResponse('ok', 200, [], 'https://example.com/final.html'));
 
     const { response } = await executeRequest({
       method: 'GET',

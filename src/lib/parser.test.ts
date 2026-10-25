@@ -529,9 +529,13 @@ describe('parseHttpFile', () => {
 
     it('ignores malformed or non-positive timeouts', () => {
       const file = parseHttpFile(
-        ['# @timeout 0', '# @timeout -5', '# @timeout abc', '# @timeout', 'GET https://a.example'].join(
-          '\n'
-        )
+        [
+          '# @timeout 0',
+          '# @timeout -5',
+          '# @timeout abc',
+          '# @timeout',
+          'GET https://a.example',
+        ].join('\n')
       );
 
       expect(file.requests[0].timeoutMs).toBeUndefined();

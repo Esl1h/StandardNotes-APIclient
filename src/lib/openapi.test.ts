@@ -30,9 +30,13 @@ describe('toOpenApi', () => {
 
   it('maps headers to header parameters and the body to an example', () => {
     const doc = exported(
-      ['POST https://x.y/cats', 'Content-Type: application/json', 'X-Trace: 1', '', '{"a": 1}'].join(
-        '\n'
-      )
+      [
+        'POST https://x.y/cats',
+        'Content-Type: application/json',
+        'X-Trace: 1',
+        '',
+        '{"a": 1}',
+      ].join('\n')
     );
 
     expect(doc.paths['/cats'].post.parameters).toContainEqual({

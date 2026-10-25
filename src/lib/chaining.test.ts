@@ -122,9 +122,7 @@ describe('resolveChaining over sent requests', () => {
   it('keeps the reference literal when the sent body is not JSON', () => {
     recordRequest('login', { headers: {}, body: 'not json' });
 
-    expect(resolveChaining('{{login.request.body.$.user}}')).toBe(
-      '{{login.request.body.$.user}}'
-    );
+    expect(resolveChaining('{{login.request.body.$.user}}')).toBe('{{login.request.body.$.user}}');
   });
 });
 
@@ -210,9 +208,7 @@ describe('sent request registry', () => {
     expect(getResponse('big')?.body).toHaveLength(MAX_RECORDED_BODY);
     expect(huge.body).toHaveLength(MAX_RECORDED_BODY + 10);
     // A JSONPath past the cut no longer resolves.
-    expect(resolveChaining('{{big.response.body.$.token}}')).toBe(
-      '{{big.response.body.$.token}}'
-    );
+    expect(resolveChaining('{{big.response.body.$.token}}')).toBe('{{big.response.body.$.token}}');
   });
 
   it('caps an oversized recorded request body', () => {
