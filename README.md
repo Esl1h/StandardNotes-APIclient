@@ -73,6 +73,17 @@ bottom to restore the sample content.
 5. Confirm the installation.
 6. Create a new note, open the **Editor** menu and pick **API Client**.
 
+## Verifying a release
+
+Releases published from November 2026 on attach a `SHA256SUMS` file and a build provenance attestation next to `extension.zip`, the package the desktop app installs. To check a downloaded zip, run in the folder that holds both files:
+
+```
+sha256sum -c SHA256SUMS
+gh attestation verify extension.zip -R Esl1h/StandardNotes-APIclient
+```
+
+The second command confirms that the zip was built by this repository's release workflow from the tagged commit. Releases are immutable: once published, their tag and files cannot be changed.
+
 ## Note format
 
 The note body is a single `.http` file:
