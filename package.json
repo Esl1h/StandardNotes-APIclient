@@ -38,7 +38,7 @@
     "format:check": "prettier --check 'src/**/*.{html,css,scss,js,jsx,ts,tsx,json}' README.md",
     "version:bump": "node scripts/version-bump.mjs",
     "version:check": "node scripts/version-bump.mjs --check",
-    "changelog": "git-cliff -o CHANGELOG.md && prettier --write CHANGELOG.md",
+    "changelog": "sh -c 'git-cliff -o CHANGELOG.md \"$@\" && prettier --write CHANGELOG.md' changelog",
     "check:build": "node scripts/check-build.mjs",
     "check:lockfile": "node scripts/check-lockfile.mjs"
   },
