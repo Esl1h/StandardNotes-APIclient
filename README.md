@@ -1,6 +1,7 @@
 # StandardNotes API Client
 
 [![CI](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/ci.yml/badge.svg)](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/github-code-scanning/codeql)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Esl1h/StandardNotes-APIclient/badges/coverage.json)](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/coverage.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Esl1h/StandardNotes-APIclient/badge)](https://scorecard.dev/viewer/?uri=github.com/Esl1h/StandardNotes-APIclient)
 [![Release](https://img.shields.io/github/v/release/Esl1h/StandardNotes-APIclient)](https://github.com/Esl1h/StandardNotes-APIclient/releases/latest)
@@ -42,10 +43,7 @@ end-to-end encryption, unlike typical web-based REST clients.
    and editable in a plain text area, and edits are still saved
 
 Requests are sent straight from the editor, so only CORS-enabled endpoints
-answer; when a request fails with a blocked fetch, the block says it is
-probably CORS. For endpoints that do not send CORS headers, use a
-CORS-friendly endpoint; a local proxy companion is planned (see
-`docs/roadmap.md`).
+answer; see [Privacy and network](#privacy-and-network).
 
 ### Try it online
 
@@ -73,6 +71,10 @@ bottom to restore the sample content.
 
 5. Confirm the installation.
 6. Create a new note, open the **Editor** menu and pick **API Client**.
+
+### Self-hosting
+
+The hosted build is plain static files, so it can be served from anywhere. Unzip `extension.zip` from a release (or run `npm run build` and take `build/`), serve the files over HTTPS with CORS enabled, and change `url`, `download_url` and `latest_url` in `ext.json` to your host. Install your `ext.json` URL as above. To keep both the hosted and your copy installed, also change `identifier`.
 
 ## Verifying a release
 
@@ -167,13 +169,20 @@ GET https://jsonplaceholder.typicode.com/posts/1
 - Browsers never send headers such as `Host`, `Cookie` or `Origin`; the
   block warns when a request declares one
 
-## Privacy
+## Compatibility
 
-Your requests, variables and tokens are stored inside your Standard Notes
-note and encrypted with the rest of your data. Running a request does send
-the described request to the target endpoint (that is the point of an API
-client), but nothing is stored or transmitted anywhere else; responses stay
-in memory.
+- Standard Notes web app and desktop app (Windows, macOS, Linux)
+- Standard Notes mobile apps (iOS and Android): on narrow screens the editor and the requests stack vertically, and the e2e suite drives the editor through a host with the mobile app's opaque origin and a throttled CPU
+- Follows the theme selected in the app, light or dark
+- Requests go out through the browser's `fetch`, in every app, so the browser's CORS rules apply (see below)
+
+## Privacy and network
+
+Your requests, variables and tokens are stored inside your Standard Notes note and encrypted with the rest of your data. The editor has no telemetry.
+
+The only network traffic is the requests you run: each one goes straight from the app to the endpoint it names, with no proxy or third-party service in between, and responses stay in memory, never in the note. Because the request comes from a web page, the endpoint must allow it with CORS headers; when a request fails with a blocked fetch, the block says it is probably CORS. A local proxy companion for endpoints without CORS is planned.
+
+The page's Content Security Policy allows scripts only from the plugin's own origin. Connections are left open, since sending requests to any endpoint is what the editor is for.
 
 ## Development and running locally
 
@@ -219,6 +228,23 @@ does not clash with the hosted one.
 
 If you run into issues, please refer to the
 [Standard Notes instructions for local plugin setup](https://standardnotes.com/help/plugins/local-setup).
+
+### Checks
+
+CI runs these on every push and pull request; run them before opening a PR:
+
+```
+npm run typecheck       # TypeScript
+npm run lint            # ESLint
+npm run format:check    # Prettier
+npm test                # unit tests (Vitest)
+npm run build           # production build
+npm run check:build     # no unreferenced file in build/
+npm run check:lockfile  # git dependencies only at the known commits
+npm run e2e             # end to end tests (Playwright)
+```
+
+Run `npx playwright install chromium` once before the first `npm run e2e`. The e2e suite builds the plugin and drives the demo page and a fake Standard Notes host (`e2e/snHost.js`), including the opaque origin and slow CPU of the mobile app.
 
 ### Releases
 
