@@ -4,7 +4,7 @@
   "content_type": "SN|Component",
   "area": "editor-editor",
   "note_type": "code",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "DEV HTTP API client editor for Standard Notes",
   "url": "http://localhost:3000/index.html",
   "download_url": "",
