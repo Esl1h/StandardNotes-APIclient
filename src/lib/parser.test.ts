@@ -255,6 +255,34 @@ describe('parseHttpFile', () => {
     expect(setActiveEnvironment('A only', 'dev')).toBe('@env = dev\nA only');
   });
 
+  describe('an @env-shaped line inside a request body', () => {
+    const body = ['POST https://e.com/', 'Content-Type: text/plain', '', '@env = prod', 'rest'];
+
+    it('is payload, not the environment', () => {
+      const file = parseHttpFile(['@token.prod = p', ...body].join('\n'));
+
+      expect(file.environment).toBeNull();
+      expect(file.requests[0].body).toBe('@env = prod\nrest');
+    });
+
+    it('does not override the real declaration', () => {
+      const file = parseHttpFile(['@env = dev', ...body].join('\n'));
+
+      expect(file.environment).toBe('dev');
+    });
+
+    it('is never removed or rewritten by setActiveEnvironment', () => {
+      const note = ['@env = dev', ...body].join('\n');
+
+      expect(setActiveEnvironment(note, null)).toBe(body.join('\n'));
+      expect(setActiveEnvironment(note, 'staging')).toBe(['@env = staging', ...body].join('\n'));
+      expect(setActiveEnvironment(body.join('\n'), null)).toBe(body.join('\n'));
+      expect(setActiveEnvironment(body.join('\n'), 'staging')).toBe(
+        ['@env = staging', ...body].join('\n')
+      );
+    });
+  });
+
   it('checks the environment scope before the default one', () => {
     const text = [
       '@host = default',

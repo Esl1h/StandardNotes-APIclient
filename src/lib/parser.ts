@@ -74,7 +74,10 @@ const ASSERT_LINE = /^#\s*@assert\s+(.+)$/;
 // # @timeout 5000: per-request timeout in milliseconds; positive integers
 // only, anything else is a plain comment.
 const TIMEOUT_LINE = /^#\s*@timeout\s+([1-9]\d*)\s*$/;
-const ENV_DECLARATION_LINE = /^@env(?:\s*=\s*([A-Za-z0-9_-]+))?\s*$/m;
+const ENV_DECLARATION_LINE = /^@env(?:\s*=\s*([A-Za-z0-9_-]+))?\s*$/;
+// Any line shaped like an @env declaration, valid name or not, which the
+// environment chips rewrite.
+const ENV_LINE = /^@env(?:\s*=.*)?$/;
 
 /** Nested references followed along one path before the rest stay literal. */
 const MAX_REFERENCE_DEPTH = 64;
@@ -247,8 +250,7 @@ function unresolvedVariables(
 
 /** Reads the active environment from the @env declaration line */
 function readActiveEnvironment(text: string): string | null {
-  const match = text.match(ENV_DECLARATION_LINE);
-  return match ? (match[1] ?? null) : null;
+  return parseHttpFile(text).environment;
 }
 
 /**
@@ -279,7 +281,15 @@ function attachBody(request: HttpRequest, bodyLines: string[]): void {
  * malformed lines are ignored so that the editor always renders something.
  */
 function parseHttpFile(text: string): HttpFile {
+  return parseLines(text).file;
+}
+
+/** The parse, plus the index of the @env declaration line (null if none). */
+function parseLines(text: string): { file: HttpFile; environmentLine: number | null } {
   const lines = text.split('\n');
+  // Found by the walk below, so a body line of the same shape, which is
+  // payload, never selects or gets rewritten as the environment.
+  let environmentLine: number | null = null;
   const variables: HttpVariable[] = [];
   const requests: HttpRequest[] = [];
 
@@ -362,6 +372,10 @@ function parseHttpFile(text: string): HttpFile {
     }
 
     const variableMatch = line.match(VARIABLE_LINE);
+    // A bare @env right under a request line would start its body instead.
+    if (environmentLine === null && ENV_LINE.test(line) && (variableMatch || !currentRequest)) {
+      environmentLine = i;
+    }
     if (variableMatch) {
       const name = variableMatch[1];
       const env = variableMatch[2];
@@ -421,7 +435,10 @@ function parseHttpFile(text: string): HttpFile {
     attachBody(currentRequest, bodyLines);
   }
 
-  const activeEnvironment = readActiveEnvironment(text);
+  const activeEnvironment =
+    environmentLine === null
+      ? null
+      : (lines[environmentLine].match(ENV_DECLARATION_LINE)?.[1] ?? null);
   const lookup = resolveVariables(variables, activeEnvironment);
 
   for (const request of requests) {
@@ -438,16 +455,23 @@ function parseHttpFile(text: string): HttpFile {
     new Set(variables.map((variable) => variable.env).filter((value): value is string => !!value))
   );
 
-  return { variables, requests, environments, environment: activeEnvironment };
+  return {
+    file: { variables, requests, environments, environment: activeEnvironment },
+    environmentLine,
+  };
 }
 
 /** Rewrites (or inserts at the top / removes) the @env declaration line */
 function setActiveEnvironment(text: string, environment: string | null): string {
-  if (/^@env(?:\s*=\s*[^\n]*)?$/m.test(text)) {
+  const { environmentLine } = parseLines(text);
+  if (environmentLine !== null) {
+    const lines = text.split('\n');
     if (environment) {
-      return text.replace(/^@env(?:\s*=\s*[^\n]*)?$/m, `@env = ${environment}`);
+      lines[environmentLine] = `@env = ${environment}`;
+    } else {
+      lines.splice(environmentLine, 1);
     }
-    return text.replace(/^@env(?:\s*=\s*[^\n]*)?\n?/m, '');
+    return lines.join('\n');
   }
   return environment ? `@env = ${environment}\n${text}` : text;
 }
