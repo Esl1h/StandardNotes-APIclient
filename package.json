@@ -36,7 +36,8 @@
     "lint": "eslint src",
     "pretty": "prettier --write 'src/**/*.{html,css,scss,js,jsx,ts,tsx,json}' README.md",
     "version:bump": "node scripts/version-bump.mjs",
-    "version:check": "node scripts/version-bump.mjs --check"
+    "version:check": "node scripts/version-bump.mjs --check",
+    "check:build": "node scripts/check-build.mjs"
   },
   "dependencies": {
     "@codemirror/language": "^6.13.1",
