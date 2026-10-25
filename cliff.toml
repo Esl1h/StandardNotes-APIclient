@@ -1,0 +1,55 @@
+# git-cliff: CHANGELOG.md and the release notes, built from the
+# Conventional Commits history. https://git-cliff.org/docs/configuration
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to this project are documented in this file.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+and the project adheres to [Semantic Versioning](https://semver.org/).
+"""
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}\
+{% if group != "<!-- 9 -->release" %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
+{% if commit.breaking %}[**breaking**] {% endif %}\
+{{ commit.message | upper_first }}\
+{% endfor %}
+{% endif %}\
+{% endfor %}\
+{% if commits | filter(attribute="group", value="<!-- 9 -->release") | length == commits | length %}
+- Maintenance release
+{% endif %}
+"""
+trim = false
+
+[git]
+conventional_commits = true
+# Commits from before the project followed Conventional Commits stay out.
+filter_unconventional = true
+protect_breaking_commits = true
+# A commit whose type matches no parser below is left out.
+filter_commits = true
+tag_pattern = "v[0-9].*"
+sort_commits = "oldest"
+commit_parsers = [
+  { message = "^feat", group = "<!-- 0 -->Added" },
+  { message = "^fix", group = "<!-- 1 -->Fixed" },
+  { message = "^perf", group = "<!-- 2 -->Performance" },
+  { message = "^refactor", group = "<!-- 3 -->Changed" },
+  { message = "^doc", group = "<!-- 4 -->Documentation" },
+  { body = ".*security", group = "<!-- 5 -->Security" },
+  { message = "^revert", group = "<!-- 6 -->Reverted" },
+  # Kept only as a marker, so a release with nothing else to list still
+  # gets its section; the template never prints this group.
+  { message = "^chore\\(release\\)|^chore:.*(release v|bump version)", group = "<!-- 9 -->release" },
+  { message = "^(build|chore|ci|style|test)", skip = true },
+]
