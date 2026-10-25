@@ -12,6 +12,13 @@ vulnerability) instead of opening a public issue. Please include the
 affected version and, if possible, the `.http` contents that trigger the
 problem.
 
+## Supply chain
+
+- Every change reaches `main` through a pull request with signed commits and passing CI; force pushes and deletions are blocked, and release tags cannot be moved or deleted
+- Workflow actions are pinned to commit hashes and run with read-only tokens unless a job needs more
+- Releases are immutable and carry `SHA256SUMS` and a build provenance attestation; the README explains how to verify them
+- The [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/Esl1h/StandardNotes-APIclient) checks these practices weekly. Its Code-Review and Branch-Protection checks stay low by design: this is a single-maintainer project, so pull requests are not reviewed by a second person
+
 ## Scope
 
 - The editor runs entirely client side; request definitions live inside

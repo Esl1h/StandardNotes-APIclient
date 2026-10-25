@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/ci.yml/badge.svg)](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Esl1h/StandardNotes-APIclient/badges/coverage.json)](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/coverage.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Esl1h/StandardNotes-APIclient/badge)](https://scorecard.dev/viewer/?uri=github.com/Esl1h/StandardNotes-APIclient)
 [![Release](https://img.shields.io/github/v/release/Esl1h/StandardNotes-APIclient)](https://github.com/Esl1h/StandardNotes-APIclient/releases/latest)
 [![License](https://img.shields.io/github/license/Esl1h/StandardNotes-APIclient)](LICENSE)
 
