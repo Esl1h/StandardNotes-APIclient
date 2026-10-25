@@ -12,7 +12,6 @@ const entryPoints = new Set([
   'ext.json',
   'ext.dev.json',
   'package.json',
-  'CNAME',
   'robots.txt',
 ]);
 const textFile = /\.(html|js|css|json|txt)$/;
