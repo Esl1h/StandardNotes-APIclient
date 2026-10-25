@@ -4,6 +4,8 @@ Thanks for helping out. This is a small, focused editor: an HTTP API
 client for Standard Notes that stores requests as portable `.http` syntax
 inside the note.
 
+By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Development setup
 
 ```

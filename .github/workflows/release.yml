@@ -4,12 +4,15 @@ on:
   push:
     tags: ['v*']
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   release:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Creates the release and pushes gh-pages.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         # The push steps carry their own token; none is left in .git/config
@@ -17,10 +20,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Use Node.js 22
+      - name: Use Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Verify version matches tag
@@ -32,8 +35,13 @@ jobs:
             exit 1
           fi
 
+      - name: Check version sync
+        run: npm run version:check
+
+      # This job can write to the repository; no dependency needs its
+      # install scripts to build or test.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Typecheck
         run: npm run typecheck
@@ -46,6 +54,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Check build contents
+        run: npm run check:build
 
       - name: Assemble extension package
         run: |

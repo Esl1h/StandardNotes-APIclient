@@ -12,9 +12,9 @@ kulala.nvim) inside the note, so they stay readable, searchable, exportable
 and portable. API tokens, payloads and variables benefit from native
 end-to-end encryption, unlike typical web-based REST clients.
 
-![API client editor running inside Standard Notes, light theme](public/demo.png)
+![API client editor running inside Standard Notes, light theme](.github/screenshots/apiclient-light.png)
 
-![API client editor running inside Standard Notes, dark theme](public/demo-dark.png)
+![API client editor running inside Standard Notes, dark theme](.github/screenshots/apiclient-dark.png)
 
 ## Features
 
