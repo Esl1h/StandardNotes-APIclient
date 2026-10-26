@@ -32,11 +32,16 @@ Then install `http://localhost:3000/ext.dev.json` via Preferences > Plugins
 
 1. `npm run typecheck`
 2. `npm run lint`
-3. `npm test`
-4. `npm run build`
-5. `npm run e2e` (run `npx playwright install chromium` once first)
+3. `npm run format:check`
+4. `npm test`
+5. `npm run build`
+6. `npm run e2e` (run `npx playwright install chromium` once first)
 
-All five must pass. CI runs the same steps.
+All six must pass. CI runs the same steps.
+
+## Tests
+
+A new feature comes with tests that cover it, and a bug fix with a regression test that fails without the fix. Unit tests live next to the code in `src/` (Vitest); behavior that needs a browser goes in `e2e/` (Playwright). The code style is enforced by ESLint and Prettier (`npm run lint`, `npm run format:check`).
 
 ## Commit messages
 
