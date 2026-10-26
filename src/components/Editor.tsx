@@ -14,7 +14,7 @@ import ErrorBoundary from './ErrorBoundary';
 const NOTE_WAIT_MS = 5000;
 
 interface EditorInterface {
-  httpFile: HttpFile | null;
+  httpFile: HttpFile;
   rawText: string;
   /** Bumped on every note switch; resets the editor's undo history */
   historyEpoch: number;
@@ -26,7 +26,7 @@ interface EditorInterface {
 
 export default class Editor extends React.Component<Record<string, never>, EditorInterface> {
   // Only these entry points are used; tests stub this field.
-  editorKit: Pick<
+  editorKit!: Pick<
     EditorKit,
     'onEditorValueChanged' | 'getComponentDataValueForKey' | 'setComponentDataValueForKey'
   >;
