@@ -393,7 +393,7 @@ function parseLines(text: string): { file: HttpFile; environmentLine: number | n
       const urlOnlyMatch = trimmed.match(URL_ONLY_LINE);
       if (requestMatch || urlOnlyMatch) {
         const method = requestMatch ? requestMatch[1].toUpperCase() : 'GET';
-        const url = requestMatch ? requestMatch[2] : urlOnlyMatch[1];
+        const url = requestMatch ? requestMatch[2] : urlOnlyMatch![1];
         currentRequest = {
           title: currentTitle || url,
           ...(pendingName ? { name: pendingName } : {}),

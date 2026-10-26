@@ -94,7 +94,7 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
     }
   }
 
-  run = (): Promise<ExecutionResult> => {
+  run = (): Promise<ExecutionResult | undefined> => {
     this.abortController?.abort();
     const controller = new AbortController();
     this.abortController = controller;
