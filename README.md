@@ -1,5 +1,7 @@
 # StandardNotes API Client
 
+![StandardNotes API Client: HTTP requests, inside your notes](assets/head.png)
+
 [![CI](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/ci.yml/badge.svg)](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/github-code-scanning/codeql)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Esl1h/StandardNotes-APIclient/badges/coverage.json)](https://github.com/Esl1h/StandardNotes-APIclient/actions/workflows/coverage.yml)
@@ -7,6 +9,8 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15957/badge)](https://www.bestpractices.dev/projects/15957)
 [![Release](https://img.shields.io/github/v/release/Esl1h/StandardNotes-APIclient)](https://github.com/Esl1h/StandardNotes-APIclient/releases/latest)
 [![License](https://img.shields.io/github/license/Esl1h/StandardNotes-APIclient)](LICENSE)
+
+<img src="assets/logo.png" alt="StandardNotes API Client logo" width="200" align="right">
 
 An HTTP API client editor for [Standard Notes](https://standardnotes.com), a
 free, open-source, end-to-end encrypted notes app. Requests are stored as
