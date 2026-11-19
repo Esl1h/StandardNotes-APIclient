@@ -62,6 +62,17 @@ only CORS enabled endpoints answer requests (httpbin.org and
 jsonplaceholder do). Use the <strong>Reset demo</strong> button at the
 bottom to restore the sample content.
 
+## Quick start
+
+1. Install the plugin by pasting its `ext.json` URL into Standard Notes, as
+   described under [Installation](#installation).
+2. Create a note and pick **API Client** in the **Editor** menu.
+3. Press **Add sample** in the empty note, then press **Run** on the first
+   request block. The response shows right below the block.
+4. Edit the text to write your own requests; the syntax is under
+   [Note format](#note-format). To try it without installing anything, use
+   the [online sandbox](#try-it-online).
+
 ## Installation
 
 1. Run the Standard Notes web or desktop app.
@@ -275,6 +286,49 @@ git tag -a vX.Y.Z -m vX.Y.Z && git push origin vX.Y.Z
 ```
 
 The `Release` workflow fails unless the tag matches every version file. It runs the checks, attaches `extension.zip` (the package the desktop app installs) with `SHA256SUMS` and a provenance attestation to the GitHub release, writes the release notes with git-cliff and publishes the hosted build to Pages. The app finds the update by comparing the version in the `ext.json` at `latest_url`.
+
+## Roadmap
+
+What the project intends to do over the next 12 months (to November 2027):
+
+- Keep up with Standard Notes and with its dependencies: Dependabot updates
+  stay current, and releases follow when the app or a dependency changes
+- Test inside the real Standard Notes apps: a real request with its CORS
+  and preflight behavior, very large responses, very long timeouts, fast
+  typing with `Run all`, and the "Not saved" notice
+- Fix the bugs that users report, and tighten the documentation and tests
+  with them
+- Possibly add more import and export formats for requests, next to the
+  existing cURL, HTTPie and OpenAPI exports. None is started
+
+What the project will not do:
+
+- Add a backend, a hosted proxy or any server that sees your requests. The
+  local proxy companion mentioned under [Privacy and network](#privacy-and-network)
+  is planned but not started, and would be a separate program that you run
+  yourself
+- Add accounts or telemetry
+- Store secrets anywhere but in your note, which Standard Notes encrypts
+- Write responses into the note by default
+
+Larger decisions are recorded as [ADRs](docs/adr/README.md). See
+[GOVERNANCE.md](GOVERNANCE.md) for who decides and how releases are
+supported.
+
+## Project documents
+
+- [ARCHITECTURE.md](ARCHITECTURE.md): components, data flow and trust boundaries
+- [SECURITY.md](SECURITY.md): reporting, security requirements and the assurance case
+- [GOVERNANCE.md](GOVERNANCE.md): decisions, roles, supported versions
+- [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [CHANGELOG.md](CHANGELOG.md)
+
+## Achievements
+
+- [OpenSSF Best Practices badge](https://www.bestpractices.dev/projects/15957)
+  (project 15957): passing level achieved; the silver level is in progress
+- [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/Esl1h/StandardNotes-APIclient),
+  checked weekly
 
 ## Credits and license
 
