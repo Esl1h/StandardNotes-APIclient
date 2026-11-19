@@ -11,9 +11,14 @@ By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 ```
 git clone https://github.com/Esl1h/StandardNotes-APIclient.git
 cd StandardNotes-APIclient
-npm install
+npm ci
 npm start
 ```
+
+`npm ci` installs everything needed to change the project and run its
+tests, from `package-lock.json`. Node 22 is the version in `.nvmrc`. Then
+`npm test` runs the unit tests, and `npm run e2e` the browser tests (run
+`npx playwright install chromium` once first).
 
 `npm start` runs the standalone editor at `http://localhost:3001` (no
 Standard Notes context, saving disabled).
@@ -39,9 +44,31 @@ Then install `http://localhost:3000/ext.dev.json` via Preferences > Plugins
 
 All six must pass. CI runs the same steps.
 
-## Tests
+## Coding standards
 
-A new feature comes with tests that cover it, and a bug fix with a regression test that fails without the fix. Unit tests live next to the code in `src/` (Vitest); behavior that needs a browser goes in `e2e/` (Playwright). The code style is enforced by ESLint and Prettier (`npm run lint`, `npm run format:check`).
+The code is TypeScript in `strict` mode (`tsconfig.json`), written in the
+style that these tools enforce:
+
+- ESLint with the recommended rules of `@eslint/js`, `typescript-eslint` and
+  `eslint-plugin-react-hooks` (`eslint.config.mjs`, `npm run lint`)
+- Prettier (`.prettierrc`: single quotes, 100 columns; `npm run format:check`,
+  fix with `npm run pretty`)
+- `npm run typecheck` for the compiler checks
+
+CI runs all of them on every push and pull request, and a pull request that
+fails them is not merged. Code and comments are in English, and a comment
+says why, not what. A style exception is rare and carries a comment where
+it occurs.
+
+## Test policy
+
+Tests for new functionality MUST be added to the automated test suite in
+the same pull request that adds the functionality. A pull request that adds
+a feature without tests is not merged. A bug fix MUST come with a
+regression test that fails without the fix. Unit tests live next to the
+code in `src/` (Vitest, `npm test`); behavior that needs a browser goes in
+`e2e/` (Playwright, `npm run e2e`). `npm run test:coverage` reports
+statement coverage; keep it at or above 80%.
 
 ## Commit messages
 
@@ -58,6 +85,6 @@ Maintainers: the steps are under [Releases](README.md#releases) in the README. `
 The parser stays dependency-free and the editor keeps the note as plain
 text. Features that turn the note content into binary or JSON blobs, or
 that persist responses into the note by default, do not fit the project.
-Check `docs/` references and the roadmap in the README before proposing
-anything heavy (proxy daemon, GraphQL, OAuth flows are planned but not
-started).
+Check the [roadmap](README.md#roadmap) and [GOVERNANCE.md](GOVERNANCE.md)
+before proposing anything heavy (a local proxy daemon, GraphQL or OAuth
+flows are planned but not started).
