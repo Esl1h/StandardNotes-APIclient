@@ -8,6 +8,17 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
+// jsdom's Blob has no stream(), so build the body stream by hand.
+function streamOf(data: string | ArrayBuffer): ReadableStream<Uint8Array> {
+  const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    },
+  });
+}
+
 function makeResponse(
   body: string,
   status: number,
@@ -19,6 +30,7 @@ function makeResponse(
     status,
     url,
     text: async () => body,
+    body: streamOf(body),
     headers: {
       forEach: (callback: (value: string, name: string) => void) =>
         headerMap.forEach((value, name) => callback(value, name)),
@@ -136,6 +148,7 @@ describe('executeRequest', () => {
     fetchMock.mockResolvedValue({
       status: 200,
       text,
+      body: streamOf(bytes),
       arrayBuffer: async () => bytes,
       headers: {
         forEach: (callback: (value: string, name: string) => void) =>
@@ -253,6 +266,110 @@ describe('executeRequest', () => {
     const { response, error } = await pending;
 
     expect(response).toBeUndefined();
+    expect(error?.kind).toBe('aborted');
+  });
+  it('clamps a timeout above the timer limit so the request is not aborted at once', async () => {
+    fetchMock.mockImplementation(async (_url: string, init: { signal: AbortSignal }) => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(init.signal.aborted).toBe(false);
+      return makeResponse('ok', 200);
+    });
+
+    const { response, error } = await executeRequest(
+      { method: 'GET', url: 'https://x.y', headers: {} },
+      { timeoutMs: 3_000_000_000 }
+    );
+
+    expect(error).toBeUndefined();
+    expect(response?.status).toBe(200);
+  });
+
+  it('refuses a response body above the size cap', async () => {
+    const chunk = new Uint8Array(1024 * 1024);
+    let sent = 0;
+    const cancel = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        sent++;
+        controller.enqueue(chunk);
+      },
+      cancel,
+    });
+    fetchMock.mockResolvedValue({
+      ...makeResponse('', 200, [['content-type', 'text/plain']]),
+      body: stream,
+    });
+
+    const { response, error } = await executeRequest({
+      method: 'GET',
+      url: 'https://x.y/huge',
+      headers: {},
+    });
+
+    expect(response).toBeUndefined();
+    expect(error?.message).toMatch(/response too large/i);
+    expect(cancel).toHaveBeenCalled();
+    expect(sent).toBeLessThan(40);
+  });
+
+  it('refuses an oversized binary body too', async () => {
+    const stream = streamOf(new ArrayBuffer(26 * 1024 * 1024));
+    fetchMock.mockResolvedValue({
+      ...makeResponse('', 200, [['content-type', 'image/png']]),
+      body: stream,
+    });
+
+    const { error } = await executeRequest({
+      method: 'GET',
+      url: 'https://x.y/a.png',
+      headers: {},
+    });
+
+    expect(error?.message).toMatch(/response too large/i);
+  });
+
+  it('decodes a multi-byte character split across chunks', async () => {
+    const bytes = new TextEncoder().encode('é');
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(bytes.slice(0, 1));
+        controller.enqueue(bytes.slice(1));
+        controller.close();
+      },
+    });
+    fetchMock.mockResolvedValue({ ...makeResponse('', 200), body: stream });
+
+    const { response } = await executeRequest({ method: 'GET', url: 'https://x.y', headers: {} });
+
+    expect(response?.body).toBe('é');
+  });
+
+  it('asks fetch not to cache the response nor send a referrer', async () => {
+    fetchMock.mockResolvedValue(makeResponse('', 200));
+
+    await executeRequest({ method: 'GET', url: 'https://x.y', headers: {} });
+
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      cache: 'no-store',
+      referrerPolicy: 'no-referrer',
+    });
+  });
+
+  it('cancels at once when the signal is already aborted', async () => {
+    fetchMock.mockImplementation(
+      (_url: string, init: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          if (init.signal.aborted) {
+            reject(new Error('AbortError'));
+          }
+        })
+    );
+
+    const { error } = await executeRequest(
+      { method: 'GET', url: 'https://x.y', headers: {} },
+      { signal: AbortSignal.abort(), timeoutMs: 1000 }
+    );
+
     expect(error?.kind).toBe('aborted');
   });
 });
