@@ -291,6 +291,22 @@ describe('Editor', () => {
     expect(container.querySelectorAll('.block')[1]).toBe(secondBlock);
   });
 
+  it('keeps an untitled block mounted when its url is edited', () => {
+    const { container, loadNote, getView } = setup();
+    loadNote('GET https://a.example/one\n');
+    const block = container.querySelector('.block');
+
+    act(() => {
+      getView().dispatch({
+        changes: { from: 'GET https://a.example/one'.length, insert: 'x' },
+        userEvent: 'input.type',
+      });
+    });
+
+    expect(container.querySelectorAll('.block')).toHaveLength(1);
+    expect(container.querySelector('.block')).toBe(block);
+  });
+
   it('does not let undo restore the text of the previous note', () => {
     const { getView, save, loadNote, type } = setup();
     loadNote('GET https://note-a.example');

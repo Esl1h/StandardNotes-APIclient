@@ -193,14 +193,22 @@ function EditorInternal(props: EditorInternalInterface) {
     activeIndexRef.current = activeIndex;
   }, [activeIndex]);
 
-  // Keyed by title and repeat count, not by line: adding lines above a block
-  // must not remount it and drop the response it is showing. The note epoch
-  // is part of the key so a note switch does remount every block, aborting a
-  // run still in flight before it records the old note's traffic under a
-  // label of the new one.
+  // Keyed by @name, else by title and repeat count, not by line: adding lines
+  // above a block must not remount it and drop the response it is showing. An
+  // untitled request takes its url as title, which every keystroke in the url
+  // would change, so it is keyed by position instead. The note epoch is part
+  // of the key so a note switch does remount every block, aborting a run
+  // still in flight before it records the old note's traffic under a label of
+  // the new one.
   const blockKeys = useMemo(() => {
     const seen = new Map<string, number>();
-    return httpFile.requests.map((request) => {
+    return httpFile.requests.map((request, index) => {
+      if (request.name) {
+        return `${historyEpoch}:@${request.name}`;
+      }
+      if (request.title === request.url) {
+        return `${historyEpoch}:#${index}`;
+      }
       const ordinal = seen.get(request.title) ?? 0;
       seen.set(request.title, ordinal + 1);
       return `${historyEpoch}:${request.title}#${ordinal}`;

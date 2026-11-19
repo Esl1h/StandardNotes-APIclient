@@ -20,6 +20,48 @@ function isBinaryContentType(contentType: string): boolean {
   return mime !== 'image/svg+xml' && BINARY_CONTENT_TYPE.test(mime);
 }
 
+// setTimeout stores its delay as a 32-bit signed integer; a larger one fires
+// at once, which would abort a request the user gave a very long timeout.
+const MAX_TIMER_MS = 2_147_483_647;
+// The whole body is held in memory and then in the note's editor state, so an
+// endless or huge response must fail instead of freezing the tab.
+const MAX_RESPONSE_BYTES = 25 * 1024 * 1024;
+
+class ResponseTooLarge extends Error {
+  constructor() {
+    super(`Response too large (over ${MAX_RESPONSE_BYTES / 1024 / 1024} MB)`);
+  }
+}
+
+/** Reads the body through the stream so the cap holds before it is all in memory */
+async function readCapped(response: Response): Promise<Uint8Array<ArrayBuffer>> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    return new Uint8Array();
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    total += value.length;
+    if (total > MAX_RESPONSE_BYTES) {
+      await reader.cancel();
+      throw new ResponseTooLarge();
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return bytes;
+}
+
 interface ExecuteOptions {
   timeoutMs?: number;
   signal?: AbortSignal;
@@ -44,13 +86,17 @@ async function executeRequest(
   },
   options: ExecuteOptions = {}
 ): Promise<ExecutionResult> {
-  const timeoutMs = options.timeoutMs ?? 30000;
+  const timeoutMs = Math.min(options.timeoutMs ?? 30000, MAX_TIMER_MS);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   // Link an external signal (e.g. user cancel) with our timeout.
   const onExternalAbort = () => controller.abort();
   options.signal?.addEventListener('abort', onExternalAbort, { once: true });
+  // An abort that fired before the listener existed would never be seen.
+  if (options.signal?.aborted) {
+    controller.abort();
+  }
 
   const startedAt = performance.now();
   // fetch throws on a body with GET/HEAD; sending none beats failing the run.
@@ -63,6 +109,10 @@ async function executeRequest(
       headers: request.headers,
       body,
       signal: controller.signal,
+      // Responses can carry secrets and the note's origin is not the API's
+      // business: no HTTP cache reuse, no Referer header.
+      cache: 'no-store',
+      referrerPolicy: 'no-referrer',
     });
 
     const headers: Record<string, string> = {};
@@ -74,13 +124,14 @@ async function executeRequest(
     let binary: HTTPResponse['binary'];
     let decodedSize: number;
     if (isBinaryContentType(headers['content-type'] ?? '')) {
-      const buffer = await response.arrayBuffer();
+      const bytes = await readCapped(response);
       const contentType = headers['content-type'].split(';')[0].trim().toLowerCase();
-      binary = { blob: new Blob([buffer], { type: contentType }), contentType };
-      decodedSize = buffer.byteLength;
+      binary = { blob: new Blob([bytes], { type: contentType }), contentType };
+      decodedSize = bytes.byteLength;
     } else {
-      text = await response.text();
-      decodedSize = new TextEncoder().encode(text).length;
+      const bytes = await readCapped(response);
+      text = new TextDecoder().decode(bytes);
+      decodedSize = bytes.byteLength;
     }
 
     // content-length is the size on the wire; the decoded text is only the

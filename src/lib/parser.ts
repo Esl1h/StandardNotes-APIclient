@@ -83,6 +83,8 @@ const ENV_LINE = /^@env(?:\s*=.*)?$/;
 const MAX_REFERENCE_DEPTH = 64;
 /** Longest resolved value, in UTF-16 units; a longer one stays literal. */
 const MAX_RESOLVED_LENGTH = 1024 * 1024;
+/** Expansions allowed per parse before the remaining references stay literal. */
+const MAX_EXPANSIONS = 10_000;
 
 type VariableLookup = (ref: string) => string | undefined;
 
@@ -138,8 +140,13 @@ function resolveVariables(
   // path through it back to itself would have been a cycle. Values longer
   // than MAX_RESOLVED_LENGTH, still doubling per level, stay as literal
   // {{ref}} text, as does anything nested past MAX_REFERENCE_DEPTH.
+  //
+  // A value that touches a cycle is never cached, so a cycle with branching
+  // (each variable referencing the next twice, the last pointing back to the
+  // first) still expands 2^n times. The expansion budget caps that work.
   const resolved = new Map<string, string | undefined>();
   let pathDependent = false;
+  let expansions = 0;
 
   // Expands `ref` as seen from `context` (an environment, or null for the
   // default scope). `seen` holds the scope-qualified names on the current
@@ -166,7 +173,7 @@ function resolveVariables(
     if (resolved.has(key)) {
       return resolved.get(key);
     }
-    if (seen.size >= MAX_REFERENCE_DEPTH) {
+    if (seen.size >= MAX_REFERENCE_DEPTH || ++expansions > MAX_EXPANSIONS) {
       pathDependent = true;
       return undefined;
     }

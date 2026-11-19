@@ -787,4 +787,21 @@ describe('parseHttpFile', () => {
       expect(file.requests[0].body).toBe('{{token}}');
     });
   });
+  it('keeps a branching cycle of variables fast and leaves the cyclic reference literal', () => {
+    // Each variable references the next twice and the last points back to the
+    // first: a cycle defeats the cache, so unbounded expansion grows as 2^n.
+    const n = 20;
+    const lines = [];
+    for (let i = 0; i < n - 1; i++) {
+      lines.push(`@a${i} = {{a${i + 1}}}{{a${i + 1}}}`);
+    }
+    lines.push(`@a${n - 1} = {{a0}}`);
+    lines.push('GET https://x.y/{{a0}}');
+
+    const startedAt = performance.now();
+    const file = parseHttpFile(lines.join('\n'));
+
+    expect(performance.now() - startedAt).toBeLessThan(1000);
+    expect(file.variables.at(-1)?.value).toBe('{{a0}}');
+  });
 });

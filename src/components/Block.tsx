@@ -41,6 +41,9 @@ interface BlockDriverState {
   prettyBody: string | null;
   /** Object URL of a binary response, for the preview and the download link */
   binaryUrl: string | null;
+  /** Outcome of each assert source, computed once per run: evaluating one
+   * can re-parse the whole response body, too costly to repeat per render */
+  assertResults?: Map<string, boolean>;
   /** True once the user asked for a body longer than DISPLAY_LIMIT in full */
   showFullBody: boolean;
   /** Outcome of the last copy, shown on its button for a moment */
@@ -106,13 +109,17 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
       prettyBody: null,
       binaryUrl: null,
       showFullBody: false,
+      assertResults: undefined,
     });
     // Chained references resolve from responses and sent requests recorded
     // by earlier runs; dynamic variables are generated fresh on every
     // execution. Neither is ever written back into the note. Only labels
     // the note still defines resolve, as the unresolved warning says.
-    const sent = resolveDynamicRequest(
-      resolveChainedRequest(this.props.request, this.props.requestNames)
+    // Dynamic variables go first, so text pulled in from a recorded response
+    // is never expanded as if the user had written it in the note.
+    const sent = resolveChainedRequest(
+      resolveDynamicRequest(this.props.request),
+      this.props.requestNames
     );
     // The label the run started under; the props may change before it ends.
     const { name } = this.props.request;
@@ -131,8 +138,17 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
         recordRequest(name, sent);
         recordResponse(name, result.response);
       }
+      const { response } = result;
       this.setState({
         running: false,
+        assertResults: response
+          ? new Map(
+              (this.props.request.asserts ?? []).map((source) => [
+                source,
+                evaluateAssert(source, response) ?? false,
+              ])
+            )
+          : undefined,
         response: result.response,
         error: result.error,
         prettyBody: result.response ? prettyPrintBody(result.response.body) : null,
@@ -346,7 +362,10 @@ class Block extends React.Component<BlockProperties, BlockDriverState> {
             {request.asserts && request.asserts.length > 0 && (
               <div className="asserts">
                 {request.asserts.map((source, index) => {
-                  const passed = response ? (evaluateAssert(source, response) ?? false) : false;
+                  // An assert edited since the run is not in the map yet.
+                  const passed =
+                    this.state.assertResults?.get(source) ??
+                    (response ? (evaluateAssert(source, response) ?? false) : false);
                   return (
                     <div
                       className={passed ? 'assert pass' : 'assert fail'}

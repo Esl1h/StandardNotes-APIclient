@@ -16,7 +16,25 @@ jobs:
       contents: write
       id-token: write
       attestations: write
+      # Reads the CI runs of the tagged commit.
+      actions: read
     steps:
+      # This workflow does not run format:check nor the e2e tests; CI does.
+      # Publishing only a commit whose CI run passed keeps one source of
+      # truth without repeating those jobs here. Tag after CI finishes; a
+      # tag pushed too early fails here and can be re-run.
+      - name: Require a green CI run for this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          PASSED=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" \
+            --status success --json databaseId --jq length)
+          if [ "$PASSED" -lt 1 ]; then
+            echo "No successful CI run for $GITHUB_SHA; not releasing."
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         # The push steps carry their own token; none is left in .git/config
         # for the build and test steps to read.

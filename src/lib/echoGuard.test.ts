@@ -60,4 +60,17 @@ describe('EchoGuard', () => {
     expect(guard.isStaleEcho('n1', '1', '3')).toBe(false);
     expect(guard.isStaleEcho('n1', '2', '3')).toBe(true);
   });
+  it('keeps only the most recent saves, so memory stays bounded', () => {
+    for (let index = 1; index <= 60; index++) {
+      guard.recordSave(`save ${index}`);
+    }
+    expect(guard.isStaleEcho('n1', 'save 1', 'save 60')).toBe(false);
+    expect(guard.isStaleEcho('n1', 'save 11', 'save 60')).toBe(true);
+  });
+
+  it('does not take a different text of the same length for an echo', () => {
+    guard.recordSave('abcd');
+    expect(guard.isStaleEcho('n1', 'abce', 'zzzz')).toBe(false);
+    expect(guard.isStaleEcho('n1', 'abcd', 'zzzz')).toBe(true);
+  });
 });
