@@ -16,6 +16,11 @@
      * smaller and read as a different scale. */
     font-size: var(--sn-stylekit-font-size-editor);
 
+    .save-status {
+      margin-bottom: 8px;
+      color: var(--sn-stylekit-danger-color);
+    }
+
     .variables-panel {
       margin-bottom: 12px;
 

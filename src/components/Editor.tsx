@@ -22,6 +22,8 @@ interface EditorInterface {
   noteReceived: boolean;
   /** True when no note arrived within NOTE_WAIT_MS */
   waitTimedOut: boolean;
+  /** True while the last save inside Standard Notes failed */
+  saveFailed: boolean;
 }
 
 export default class Editor extends React.Component<Record<string, never>, EditorInterface> {
@@ -42,6 +44,7 @@ export default class Editor extends React.Component<Record<string, never>, Edito
       historyEpoch: 0,
       noteReceived: false,
       waitTimedOut: false,
+      saveFailed: false,
     };
   }
 
@@ -130,8 +133,16 @@ export default class Editor extends React.Component<Record<string, never>, Edito
      */
     try {
       this.editorKit.onEditorValueChanged(text);
+      if (this.state.saveFailed) {
+        this.setState({ saveFailed: false });
+      }
     } catch (error) {
       console.log('Error saving note:', error);
+      // Standalone has no save bridge, so a throw there is expected; only the
+      // embedded editor can lose work the user believes is saved.
+      if (window.parent !== window) {
+        this.setState({ saveFailed: true });
+      }
     }
   };
 
@@ -167,6 +178,7 @@ export default class Editor extends React.Component<Record<string, never>, Edito
           onSetEnvironment={this.handleSetEnvironment}
           activeEnvironment={this.state.httpFile.environment}
           historyEpoch={this.state.historyEpoch}
+          saveFailed={this.state.saveFailed}
         />
       </ErrorBoundary>
     );
