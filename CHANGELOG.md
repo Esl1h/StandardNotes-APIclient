@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] - 2026-11-19
+
+### Fixed
+
+- **parser:** Cap variable expansion work
+- **executor:** Bound timeout, size and cache
+- **echo-guard:** Keep fingerprints of saves
+- **block:** Compute asserts once per run
+- **editor:** Keep an untitled block mounted
+
+### Documentation
+
+- State the test policy for contributions
+- Add the OpenSSF Best Practices badge
+- Add logo and header assets to README
+
 ## [1.0.1] - 2026-10-25
 
 ### Fixed
