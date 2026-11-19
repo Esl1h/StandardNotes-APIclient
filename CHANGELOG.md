@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.3] - 2026-11-19
+
+### Fixed
+
+- **editor:** Show when a note is not saved
+
 ## [1.0.2] - 2026-11-19
 
 ### Fixed
