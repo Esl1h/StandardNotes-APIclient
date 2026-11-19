@@ -229,4 +229,17 @@ describe('httpStreamParser follows the parser', () => {
     expect(styles).toContainEqual(['{"a":', null]);
     expect(styles).not.toContainEqual(['{"a":', 'keyword']);
   });
+  it.each([
+    ['a long selection', `query {${' field'.repeat(50_000)} }`],
+    ['a long string', `query { a(s: "${'x'.repeat(200_000)}") }`],
+    ['a long comment', `query { a } # ${'c'.repeat(200_000)}`],
+  ])('highlights a one-line GraphQL body with %s in bounded time', (_name, query) => {
+    const text = ['POST https://x.y/graphql', 'Content-Type: application/json', '', query].join(
+      '\n'
+    );
+
+    const startedAt = performance.now();
+    expect(() => parseFully(text)).not.toThrow();
+    expect(performance.now() - startedAt).toBeLessThan(2000);
+  });
 });
