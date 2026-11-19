@@ -3,10 +3,16 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import Block from './Block';
 import { executeRequest, type ExecutionResult } from '../lib/executor';
 import { type HttpRequest } from '../lib/parser';
+import { evaluateAssert } from '../lib/asserts';
 import { getRequest, getResponse, recordResponse, resetChaining } from '../lib/chaining';
 
 vi.mock('../lib/executor', () => ({ executeRequest: vi.fn() }));
 const executeMock = vi.mocked(executeRequest);
+vi.mock('../lib/asserts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/asserts')>();
+  return { evaluateAssert: vi.fn(actual.evaluateAssert) };
+});
+const evaluateAssertMock = vi.mocked(evaluateAssert);
 
 const request: HttpRequest = {
   title: 'Ping',
@@ -31,6 +37,7 @@ beforeEach(() => {
   URL.createObjectURL = vi.fn(() => 'blob:preview');
   URL.revokeObjectURL = vi.fn();
   resetChaining();
+  evaluateAssertMock.mockClear();
 });
 
 describe('Block', () => {
@@ -634,5 +641,57 @@ describe('Block', () => {
 
       expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
     });
+  });
+  it('evaluates the asserts once per run, not on every render', async () => {
+    await runBlock(
+      {
+        response: {
+          status: 200,
+          timeMs: 5,
+          sizeBytes: 10,
+          sizeIsDecoded: true,
+          headers: {},
+          body: '{"id": 7}',
+        },
+      },
+      { asserts: ['status == 200', 'body.$.id exists'] }
+    );
+    const calls = evaluateAssertMock.mock.calls.length;
+
+    // Copying sets state, which re-renders the block.
+    fireEvent.click(screen.getByRole('button', { name: /Copy as cURL|Copy failed/ }));
+    await screen.findByRole('button', { name: /Copied|Copy failed/ });
+
+    expect(calls).toBeGreaterThan(0);
+    expect(evaluateAssertMock.mock.calls).toHaveLength(calls);
+    expect(document.querySelectorAll('.assert.pass')).toHaveLength(2);
+  });
+
+  it('does not expand dynamic variables found inside a recorded response', async () => {
+    recordResponse('login', {
+      status: 200,
+      timeMs: 1,
+      sizeBytes: 10,
+      sizeIsDecoded: true,
+      headers: {},
+      body: '{"note": "{{$uuid}}"}',
+    });
+    executeMock.mockResolvedValue({ response: undefined });
+    render(
+      <Block
+        request={{
+          ...request,
+          url: 'https://example.com/x?n={{login.response.body.$.note}}',
+          name: 'next',
+        }}
+        requestNames={new Set(['login', 'next'])}
+        active={false}
+        onSelect={() => {}}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+    await waitFor(() => expect(executeMock).toHaveBeenCalled());
+
+    expect(executeMock.mock.calls[0][0].url).toBe('https://example.com/x?n={{$uuid}}');
   });
 });
