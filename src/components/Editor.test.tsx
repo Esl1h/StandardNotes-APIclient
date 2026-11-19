@@ -487,3 +487,56 @@ describe('Editor while waiting for the note', () => {
     expect(getView().state.doc.toString()).toBe('GET https://late.example');
   });
 });
+
+describe('Editor save failures', () => {
+  // Inside Standard Notes the editor runs in an iframe, so parent differs.
+  const embed = () =>
+    vi.spyOn(window, 'parent', 'get').mockReturnValue({} as unknown as Window & typeof globalThis);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('shows "Not saved" when a save throws while embedded', () => {
+    embed();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const { loadNote, type, save } = setup();
+    loadNote('GET https://a.example');
+    save.mockImplementation(() => {
+      throw new Error('host disconnected');
+    });
+
+    type(' ');
+
+    expect(screen.getByRole('status')).toHaveTextContent('Not saved');
+  });
+
+  it('clears "Not saved" when a later save succeeds', () => {
+    embed();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const { loadNote, type, save } = setup();
+    loadNote('GET https://a.example');
+    save.mockImplementationOnce(() => {
+      throw new Error('host disconnected');
+    });
+
+    type(' ');
+    expect(screen.getByRole('status')).toHaveTextContent('Not saved');
+
+    type(' ');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('stays silent when a save throws in the standalone page', () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const { loadNote, type, save } = setup();
+    loadNote('GET https://a.example');
+    save.mockImplementation(() => {
+      throw new Error('no bridge');
+    });
+
+    type(' ');
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+});

@@ -32,6 +32,8 @@ interface EditorInternalInterface {
   activeEnvironment: string | null;
   /** Bump when rawText is a different document, to reset the undo history */
   historyEpoch?: number;
+  /** Show the "Not saved" status */
+  saveFailed?: boolean;
 }
 
 export type { HTTPResponse, HTTPError, EditorInternalInterface };

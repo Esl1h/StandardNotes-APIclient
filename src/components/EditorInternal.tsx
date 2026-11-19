@@ -24,6 +24,7 @@ function EditorInternal(props: EditorInternalInterface) {
     onSetEnvironment,
     activeEnvironment,
     historyEpoch = 0,
+    saveFailed = false,
   } = props;
   const viewRef = useRef<EditorView | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -263,6 +264,11 @@ function EditorInternal(props: EditorInternalInterface) {
         }}
       />
       <div className="requests-list">
+        {saveFailed && (
+          <div className="save-status" role="status">
+            Not saved
+          </div>
+        )}
         {httpFile.requests.length > 0 && (
           <div className="run-all-row">
             <button
