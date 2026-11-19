@@ -103,6 +103,17 @@ gh attestation verify extension.zip -R Esl1h/StandardNotes-APIclient
 
 The second command confirms that the zip was built by this repository's release workflow from the tagged commit. Releases are immutable: once published, their tag and files cannot be changed.
 
+### Release tags
+
+The release tags (`vX.Y.Z`) are GPG signed by the maintainer. To verify one, import the key GitHub publishes for the account, then check the tag:
+
+```
+curl -sL https://github.com/Esl1h.gpg | gpg --import
+git verify-tag vX.Y.Z
+```
+
+A good signature prints `Good signature` with the fingerprint `6CCC4FEB22888DEE5603A14EB0F98F624F335FE6`. gpg also warns that the key owner is unknown until you set the trust yourself; that is normal for a fresh import.
+
 ## Note format
 
 The note body is a single `.http` file:
